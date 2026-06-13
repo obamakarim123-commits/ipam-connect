@@ -1,0 +1,80 @@
+:root{
+  --bg: #F8FAFC; /* off-white application background */
+  --surface: #FFFFFF; /* card surfaces */
+  --text: #1E293B; /* deep academic slate */
+  --muted: #64748B; /* muted gray */
+  --primary: #4169E1; /* royal blue */
+  --primary-600: #375fd6;
+  --primary-700: #2d4fbf;
+  --border: #E2E8F0; /* thin high-contrast border */
+  --radius-md: 14px;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.45;
+}
+
+.hidden{display:none!important}
+
+.app-shell{max-width:1200px;margin:0 auto;padding:20px}
+
+/* Topbar / hero */
+.hero, .topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:20px}
+.hero{padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md)}
+.hero h1,.topbar h1{margin:0;font-size:clamp(1.6rem,2.4vw,2rem)}
+.hero p,.topbar p{margin:0;color:var(--muted)}
+
+/* Left navigation - fixed column */
+.layout{display:flex;gap:20px}
+.left-nav{width:220px;position:sticky;top:20px;height:calc(100vh - 40px)}
+.left-nav .nav{display:flex;flex-direction:column;gap:8px}
+.left-nav button{background:transparent;border:1px solid var(--border);padding:10px;border-radius:12px;color:var(--muted);text-align:left}
+.left-nav button.active{background:linear-gradient(90deg,var(--primary),var(--primary));color:#fff;border-color:var(--primary)}
+
+/* Main content area */
+.main-content{flex:1}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px}
+.card-list{display:grid;gap:12px}
+
+/* Filters */
+.filters{display:flex;gap:12px;flex-wrap:wrap}
+label{display:flex;flex-direction:column;gap:8px}
+input,select,button{font:inherit}
+input,select{padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text)}
+
+/* Global button styles using royal blue accent */
+button{padding:10px 14px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--text);cursor:pointer;transition:all .15s ease;display:inline-flex;align-items:center;gap:8px}
+button.primary, .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:0 6px 18px rgba(65,105,225,0.12)}
+button.primary:hover, .btn-primary:hover{filter:brightness(.97);transform:translateY(-2px);box-shadow:0 10px 22px rgba(65,105,225,0.14)}
+button.primary:active, .btn-primary:active{transform:translateY(0);box-shadow:0 6px 12px rgba(65,105,225,0.08)}
+button.secondary{background:#fff;border:1px solid var(--border);color:var(--muted);padding:8px 12px;border-radius:10px}
+button:focus{outline:3px solid rgba(65,105,225,0.14);outline-offset:2px}
+
+/* Make anchor links that act like buttons match primary styling when given .btn-primary */
+a.btn-primary{background:var(--primary);color:#fff;padding:8px 12px;border-radius:10px;text-decoration:none;display:inline-block}
+
+/* Messaging layouts */
+.messaging-dashboard{display:flex;gap:16px}
+.left-panel,.middle-panel,.right-panel{display:flex;flex-direction:column}
+.message-list{display:flex;flex-direction:column;gap:10px;overflow:auto}
+.message-item{background:var(--surface);border:1px solid var(--border);padding:10px;border-radius:12px}
+.message-item.deleted{opacity:0.7;font-style:italic}
+
+.chat-form{display:flex;gap:8px;align-items:center}
+.chat-form input[type="text"]{flex:1}
+
+/* Admin panel tweaks */
+table{width:100%;border-collapse:collapse}
+td,th{padding:8px;border-bottom:1px solid var(--border);text-align:left}
+
+/* Responsive */
+@media(max-width:900px){
+  .layout{flex-direction:column}
+  .left-nav{position:relative;width:100%;height:auto}
+}
+
