@@ -3,279 +3,526 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IPAM Connect</title>
+    <title>IPAM Connect - Student Academic Networking</title>
+    <!-- Import Google Fonts: Outfit for headings, Inter for body -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app-shell" id="auth-screen">
-      <header class="hero">
-        <div>
-          <h1>IPAM Connect</h1>
-          <p>Academic networking and communication built for students with native browser performance.</p>
-        </div>
-      </header>
-
-      <main class="card auth-card">
-        <div class="auth-tabs">
-          <button class="tab active" data-target="login-view">Log In</button>
-          <button class="tab" data-target="register-view">Register</button>
-        </div>
-
-        <section id="login-view" class="auth-panel active">
-          <form id="login-form" class="form-grid">
-            <label>
-              Email
-              <input type="email" id="login-email" required />
-            </label>
-            <label>
-              Password
-              <input type="password" id="login-password" required minlength="6" />
-            </label>
-            <button type="submit" class="primary">Sign In</button>
-          </form>
-        </section>
-
-        <section id="register-view" class="auth-panel">
-          <form id="register-form" class="form-grid">
-            <label>
-              Full Name
-              <input type="text" id="register-name" required />
-            </label>
-            <label>
-              Email
-              <input type="email" id="register-email" required />
-            </label>
-            <label>
-              Password
-              <input type="password" id="register-password" required minlength="6" />
-            </label>
-            <label>
-              Student ID
-              <input type="text" id="register-student-id" required placeholder="IPAM-2026-0001" />
-            </label>
-            <label>
-              Department
-              <select id="register-department" required></select>
-            </label>
-            <label>
-              Level
-              <select id="register-level" required></select>
-            </label>
-            <label>
-              Class Rep Token (optional)
-              <input type="text" id="register-token" placeholder="Single-use token" />
-            </label>
-            <button type="submit" class="primary">Create Account</button>
-          </form>
-        </section>
-      </main>
+    <!-- Background Gradient Grids -->
+    <div class="bg-gradient-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
     </div>
 
-    <div class="app-shell hidden" id="app-screen">
-      <header class="topbar">
-        <div>
+    <!-- AUTHENTICATION SCREEN -->
+    <div class="auth-wrapper" id="auth-screen">
+      <div class="auth-container">
+        <header class="auth-header">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/e/ea/Wappen_University_of_Sierra_Leone.png" alt="IPAM Logo" class="auth-logo" />
           <h1>IPAM Connect</h1>
-          <p id="user-role-label"></p>
+          <p>A unified academic space built exclusively for students of USL</p>
+        </header>
+
+        <main class="auth-card">
+          <div class="auth-tabs">
+            <button class="tab-btn active" data-target="login-view">Log In</button>
+            <button class="tab-btn" data-target="register-view">Register</button>
+          </div>
+
+          <!-- Login Panel -->
+          <section id="login-view" class="auth-panel active">
+            <form id="login-form" class="form-grid">
+              <div class="form-group">
+                <label for="login-email">Email Address</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">✉️</span>
+                  <input type="email" id="login-email" placeholder="student@ipam.edu.sl" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="login-password">Password</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">🔒</span>
+                  <input type="password" id="login-password" placeholder="••••••••" required minlength="6" />
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">Sign In</button>
+            </form>
+          </section>
+
+          <!-- Register Panel -->
+          <section id="register-view" class="auth-panel">
+            <form id="register-form" class="form-grid">
+              <div class="form-group">
+                <label for="register-name">Full Name</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">👤</span>
+                  <input type="text" id="register-name" placeholder="John Doe" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="register-email">Email Address</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">✉️</span>
+                  <input type="email" id="register-email" placeholder="johndoe@ipam.edu.sl" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="register-password">Password</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">🔒</span>
+                  <input type="password" id="register-password" placeholder="Min. 6 characters" required minlength="6" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="register-student-id">Student ID</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">🆔</span>
+                  <input type="text" id="register-student-id" required placeholder="IPAM-2026-0001" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="register-department">Department</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">🏢</span>
+                  <select id="register-department" required></select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="register-level">Academic Level</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">📈</span>
+                  <select id="register-level" required></select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="register-token">Class Rep Token (Optional)</label>
+                <div class="input-wrapper">
+                  <span class="input-icon">🔑</span>
+                  <input type="text" id="register-token" placeholder="Enter single-use token" />
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">Create Account</button>
+            </form>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <!-- MAIN APPLICATION SCREEN -->
+    <div class="app-layout hidden" id="app-screen">
+      <!-- Left Glassmorphism Sidebar -->
+      <aside class="sidebar">
+        <div class="brand">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/e/ea/Wappen_University_of_Sierra_Leone.png" alt="IPAM USL Logo" class="brand-logo" />
+          <div class="brand-details">
+            <span class="brand-name">IPAM Connect</span>
+            <span class="brand-sub">University of SL</span>
+          </div>
         </div>
-        <button id="logout-button" class="secondary">Log Out</button>
-      </header>
 
-      <nav class="main-nav">
-        <button data-view="directory">Directory</button>
-        <button data-view="chat">Messaging</button>
-        <button data-view="resources">Resources</button>
-        <button data-view="admin" id="admin-tab" class="hidden">Admin</button>
-      </nav>
+        <nav class="main-nav">
+          <button data-view="directory" class="nav-item active">
+            <span class="nav-icon">👥</span>
+            <span class="nav-label">Directory</span>
+          </button>
+          <button data-view="chat" class="nav-item">
+            <span class="nav-icon">💬</span>
+            <span class="nav-label">Messaging</span>
+          </button>
+          <button data-view="resources" class="nav-item">
+            <span class="nav-icon">📚</span>
+            <span class="nav-label">Resources</span>
+          </button>
+          <button data-view="admin" id="admin-tab" class="nav-item hidden">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-label">Admin Control</span>
+          </button>
+        </nav>
 
-      <main class="content-grid">
-        <section id="directory" class="view-panel active">
-          <div class="panel-header">
-            <h2>Student Directory</h2>
-            <div class="filters">
-              <label>
-                Department
-                <select id="directory-department"></select>
-              </label>
-              <label>
-                Level
-                <select id="directory-level"></select>
-              </label>
-              <!-- Redesign compatibility selects (must keep these exact IDs) -->
-              <label style="display:none;">
-                Dept (compat)
-                <select id="dir-dept-select">
+        <div class="sidebar-footer">
+          <button id="logout-button" class="btn btn-logout">
+            <span class="nav-icon">🚪</span>
+            <span class="nav-label">Log Out</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Right Main Workspace Container -->
+      <main class="workspace">
+        <header class="topbar">
+          <div class="workspace-meta">
+            <h1 id="workspace-title">Student Directory</h1>
+            <p id="user-role-label" class="user-role-tag">Loading profile...</p>
+          </div>
+          
+          <div class="topbar-actions">
+            <!-- Decorative Search to mimic mockup -->
+            <div class="search-bar">
+              <span class="search-icon">🔍</span>
+              <input type="text" placeholder="Search files, channels, peers..." disabled />
+            </div>
+
+            <!-- Dashboard Notifications Mock -->
+            <div class="action-badge-btn">
+              <span class="icon-span">💬</span>
+              <span class="counter-badge">2</span>
+            </div>
+            <div class="action-badge-btn">
+              <span class="icon-span">🔔</span>
+              <span class="counter-badge">6</span>
+            </div>
+
+            <!-- Profile Avatar Mock -->
+            <div class="user-profile-avatar">
+              <span class="avatar-placeholder">🎓</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Dynamic Panels Section -->
+        <div class="workspace-content">
+          
+          <!-- DIRECTORY VIEW -->
+          <section id="directory" class="view-panel active">
+            <div class="panel-card-header">
+              <div class="header-details">
+                <h2>Browse Student Directory</h2>
+                <p>Connect with peers across departments, years, and levels</p>
+              </div>
+              
+              <div class="filters-panel">
+                <div class="filter-group">
+                  <label for="directory-department">Department</label>
+                  <select id="directory-department"></select>
+                </div>
+                <div class="filter-group">
+                  <label for="directory-level">Level</label>
+                  <select id="directory-level"></select>
+                </div>
+
+                <!-- Hidden/compat elements required by app.js (mirroring mechanism) -->
+                <select id="dir-dept-select" style="display:none;">
                   <option value="">All</option>
                   <option value="BSc IT">BSc IT</option>
                   <option value="BSc Financial Services">BSc Financial Services</option>
                 </select>
-              </label>
-              <label style="display:none;">
-                Level (compat)
-                <select id="dir-level-select">
+                <select id="dir-level-select" style="display:none;">
                   <option value="">All</option>
                   <option value="Year 1">Year 1</option>
                   <option value="Year 2">Year 2</option>
                 </select>
-              </label>
-              <button id="directory-search" class="secondary">Filter</button>
+
+                <button id="directory-search" class="btn btn-primary">
+                  <span>🔍</span> Filter
+                </button>
+              </div>
             </div>
-          </div>
-          <div id="directory-results" class="card-list"></div>
-        </section>
+            
+            <div id="directory-results" class="results-grid">
+              <!-- Rendered Dynamically by app.js -->
+            </div>
+          </section>
 
-        <section id="chat" class="view-panel">
-          <div class="panel-header">
-            <h2>Class & Direct Chat</h2>
-            <p>Native Firestore-powered messaging, with attachment support through Firebase Storage.</p>
-          </div>
-
-          <!-- 3-Pane Messaging Dashboard -->
-          <div class="messaging-dashboard" style="display:flex;gap:16px;">
-            <!-- Left Panel: Threads -->
-            <aside class="panel left-panel" style="width:22%;">
-              <div class="card" style="padding:12px;">
-                <div class="sub-tabs">
-                  <button class="secondary">All</button>
-                  <button class="secondary">Classes</button>
-                  <button class="secondary">Mentions</button>
-                </div>
+          <!-- CHAT VIEW -->
+          <section id="chat" class="view-panel">
+            <div class="panel-card-header">
+              <div class="header-details">
+                <h2>Class & Direct Chat</h2>
+                <p>Native real-time communications powered by Firestore listeners</p>
               </div>
-              <div id="chatThreadsContainer" class="card-list" style="margin-top:12px;">
-                <!-- Thread snippets (rendered by app) -->
+            </div>
+
+            <!-- 3-Pane Messaging Dashboard -->
+            <div class="chat-dashboard">
+              <!-- Left Panel: Channels & Chats list -->
+              <aside class="chat-sidebar">
+                <div class="chat-sidebar-header">
+                  <div class="mini-pill-tabs">
+                    <button class="pill active">All</button>
+                    <button class="pill">Classes</button>
+                    <button class="pill">Directs</button>
+                  </div>
+                </div>
+                <div id="chatThreadsContainer" class="thread-list">
+                  <div class="thread-item active" data-channel="general">
+                    <div class="thread-icon">🏫</div>
+                    <div class="thread-info">
+                      <h4>General Channel</h4>
+                      <p>Active Firestore room</p>
+                    </div>
+                  </div>
+                  <div class="thread-item" data-channel="bot">
+                    <div class="thread-icon">🤖</div>
+                    <div class="thread-info">
+                      <h4>Study AI Bot</h4>
+                      <p>Get instant academic assistance</p>
+                    </div>
+                  </div>
+                  <div class="thread-item" data-channel="it-group">
+                    <div class="thread-icon">💻</div>
+                    <div class="thread-info">
+                      <h4>BSc IT Year 2 Group</h4>
+                      <p>Mock classmates stream</p>
+                    </div>
+                  </div>
+                  <div class="thread-item" data-channel="support">
+                    <div class="thread-icon">🛠️</div>
+                    <div class="thread-info">
+                      <h4>Support Desk</h4>
+                      <p>Mock administrative support</p>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+
+              <!-- Middle Panel: Message feed / snippet log -->
+              <section class="chat-feed-panel">
+                <div class="feed-container">
+                  <div class="feed-header">
+                    <h3>Conversation Log</h3>
+                    <span class="status-indicator">● Realtime</span>
+                  </div>
+                  <div id="chatMessageStream" class="message-feed-list">
+                    <!-- Standard message display wrapper -->
+                    <div id="chat-messages" class="messages-wrap"></div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Right Panel: Focus Active Chat Window -->
+              <section class="chat-window-panel">
+                <div class="active-window-container">
+                  <header id="active-chat-header" class="active-chat-header">
+                    <div class="active-user-meta">
+                      <div class="active-avatar">💬</div>
+                      <div>
+                        <h3>Workspace Main Stream</h3>
+                        <p class="subtitle">Secure end-to-end messaging</p>
+                      </div>
+                    </div>
+                  </header>
+
+                  <div id="chatMessageStreamActive" class="active-messages-feed">
+                    <!-- Leaves for app rendering or custom css layouts -->
+                    <div class="chat-placeholder-graphic">
+                      <span class="graphic-icon">💬</span>
+                      <p>Select a class channel or direct message thread from the lists to start discussing.</p>
+                    </div>
+                  </div>
+
+                  <!-- Chat Action Footer -->
+                  <form id="chat-form" class="chat-composer-form">
+                    <label class="attachment-trigger" for="chat-attachment" title="Attach study material">
+                      📎
+                    </label>
+                    <input type="file" id="chat-attachment" />
+
+                    <input type="text" id="chat-text" placeholder="Type your message here..." required />
+
+                    <!-- Compat inputs for redesign hooks in app.js -->
+                    <input type="text" id="msgInputText" style="display:none;" />
+                    <input type="file" id="msgFileInput" style="display:none;" />
+
+                    <button type="button" id="sendMsgAction" class="btn btn-send-message">
+                      Send
+                    </button>
+                  </form>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <!-- RESOURCES VIEW -->
+          <section id="resources" class="view-panel">
+            <div class="panel-card-header">
+              <div class="header-details">
+                <h2>Academic Repository</h2>
+                <p>Upload slides, notes, assignments, and search other student materials</p>
               </div>
-            </aside>
+            </div>
 
-            <!-- Middle Panel: Conversation snippets / feed -->
-            <section class="panel middle-panel" style="width:30%;">
-              <div class="card" style="height:640px; padding:12px; display:flex; flex-direction:column;">
-                <h3 style="margin:0 0 8px 0;">Conversations</h3>
-                <div id="chatMessageStream" class="message-list" style="overflow:auto; flex:1;">
-                  <!-- Existing message list preserved inside for compatibility -->
-                  <div id="chat-messages"></div>
-                </div>
-              </div>
-            </section>
-
-            <!-- Right Panel: Active Chat Window -->
-            <section class="panel right-panel" style="width:48%; display:flex; flex-direction:column;">
-              <div class="card" style="flex:1; display:flex; flex-direction:column; padding:12px;">
-                <div id="active-chat-header">
-                  <h3 style="margin:0">Active Conversation</h3>
-                </div>
-                <div id="chatMessageStreamActive" class="message-stream" style="flex:1; overflow:auto; margin-top:12px;">
-                  <!-- Active chat messages area -- leave for app rendering -->
-                </div>
-
-                <!-- Action footer (must preserve script IDs) -->
-                <form id="chat-form" class="chat-form" style="margin-top:12px; display:flex; gap:8px; align-items:center;">
-                  <input type="text" id="chat-text" placeholder="Write a message..." required style="flex:1; padding:10px; border-radius:12px; border:1px solid #E2E8F0;" />
-                  <input type="file" id="chat-attachment" style="display:none;" />
-
-                  <!-- Mirror inputs required by redesign -->
-                  <input type="text" id="msgInputText" placeholder="Write a message..." style="display:none;" />
-                  <input type="file" id="msgFileInput" style="display:none;" />
-
-                  <button type="button" id="sendMsgAction" class="primary">Send</button>
+            <div class="resources-layout">
+              <!-- Upload Form -->
+              <div class="upload-sidebar-card">
+                <h3>Share Study Material</h3>
+                <form id="resource-form" class="upload-form">
+                  <div class="form-group">
+                    <label for="resource-title">Resource Title</label>
+                    <input type="text" id="resource-title" placeholder="e.g. Lecture 3: Matrices" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="resource-category">Category</label>
+                    <select id="resource-category" required>
+                      <option value="notes">Notes</option>
+                      <option value="slides">Slides</option>
+                      <option value="assignments">Assignments</option>
+                      <option value="projects">Projects</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="resource-file" class="custom-file-upload">
+                      <span class="file-icon">📂</span> Select File
+                    </label>
+                    <input type="file" id="resource-file" required />
+                  </div>
+                  <button type="submit" class="btn btn-primary btn-block">Upload to Cloud</button>
+                  <p class="form-warning">⚠️ Limit: 50MB per file. Only academic resources permitted.</p>
                 </form>
               </div>
-            </section>
-          </div>
-        </section>
 
-        <section id="resources" class="view-panel">
-          <div class="panel-header">
-            <h2>Academic Repository</h2>
-            <p>Upload study materials and browse shared resources with metadata taxonomy.</p>
-          </div>
-          <form id="resource-form" class="form-grid">
-            <label>
-              Title
-              <input type="text" id="resource-title" required />
-            </label>
-            <label>
-              Category
-              <select id="resource-category" required>
-                <option value="notes">Notes</option>
-                <option value="slides">Slides</option>
-                <option value="assignments">Assignments</option>
-                <option value="projects">Projects</option>
-              </select>
-            </label>
-            <label>
-              File
-              <input type="file" id="resource-file" required />
-            </label>
-            <button type="submit" class="primary">Upload Resource</button>
-            <p class="warning">Keep uploads under 50MB and avoid unoptimized local files.</p>
-          </form>
-          <div id="resource-list" class="card-list"></div>
-        </section>
-
-        <section id="admin" class="view-panel hidden">
-          <div class="panel-header">
-            <h2>Admin Control Center</h2>
-            <p>Approve affinity groups, manage tokens, and moderate content instantly.</p>
-          </div>
-          <div class="card admin-summary">
-            <h3>Admin actions</h3>
-            <button id="refresh-admin" class="secondary">Refresh Moderation Data</button>
-          </div>
-          <div class="card">
-            <h3>Create Single-Use Token</h3>
-            <form id="token-form" class="form-grid">
-              <label>
-                Department
-                <select id="token-department" required></select>
-              </label>
-              <label>
-                Level
-                <select id="token-level" required></select>
-              </label>
-              <button type="submit" class="primary">Generate Token</button>
-            </form>
-          </div>
-          <!-- Admin compatibility console -->
-          <div class="card" style="margin-top:12px; display:flex; gap:12px;">
-            <div style="flex:1;">
-              <h4>Generate Token (compat)</h4>
-              <label style="display:block;">
-                Department
-                <select id="token-dept">
-                  <option value="BSc Information Technology">BSc Information Technology</option>
-                  <option value="BSc Computer Science">BSc Computer Science</option>
-                </select>
-              </label>
-              <label style="display:block; margin-top:6px;">
-                Level
-                <select id="token-level">
-                  <option value="Year 1">Year 1</option>
-                  <option value="Year 2">Year 2</option>
-                </select>
-              </label>
-              <div style="margin-top:8px;">
-                <button class="primary" onclick="generateOneTimeToken()">Generate Token</button>
-              </div>
-              <div style="margin-top:8px;">
-                <input id="tokenDisplayBox" readonly style="width:100%; padding:8px; border:1px solid #E2E8F0; border-radius:8px; background:#fff;" />
+              <!-- Shared File Log -->
+              <div class="resource-feed">
+                <h3>Available Class Materials</h3>
+                <div id="resource-list" class="resources-grid">
+                  <!-- Rendered Dynamically by app.js -->
+                </div>
               </div>
             </div>
-            <div style="flex:1;">
-              <h4>Active Tokens</h4>
-              <table style="width:100%; border-collapse:collapse;">
-                <thead>
-                  <tr><th style="text-align:left; border-bottom:1px solid #E2E8F0;">Token</th><th style="text-align:left; border-bottom:1px solid #E2E8F0;">Dept</th><th style="text-align:left; border-bottom:1px solid #E2E8F0;">Level</th></tr>
-                </thead>
-                <tbody id="tokenTableBody"></tbody>
-              </table>
+          </section>
+
+          <!-- ADMIN VIEW -->
+          <section id="admin" class="view-panel hidden">
+            <div class="panel-card-header">
+              <div class="header-details">
+                <h2>Admin Control Center</h2>
+                <p>Generate registration authorization keys and review platform actions</p>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <a href="admin.html" target="_blank" class="btn btn-primary" style="background: #10b981; border-color: #10b981; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);">
+                  👑 Open Admin Web Console
+                </a>
+                <button id="refresh-admin" class="btn btn-secondary">
+                  🔄 Sync Records
+                </button>
+              </div>
             </div>
-          </div>
-          <div id="admin-console" class="card-list"></div>
-        </section>
+
+            <div class="admin-grid-layout">
+              <!-- Token Management -->
+              <div class="admin-card">
+                <div class="admin-card-header">
+                  <h3>Generate Class Rep Code</h3>
+                  <p>Issue single-use tokens assigned to specific departments and years</p>
+                </div>
+                
+                <form id="token-form" class="admin-token-form">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label for="token-department">Department</label>
+                      <select id="token-department" required></select>
+                    </div>
+                    <div class="form-group">
+                      <label for="token-level">Level</label>
+                      <select id="token-level" required></select>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Generate Authorization Token</button>
+                </form>
+              </div>
+
+              <!-- Compatibility Token Console Panel -->
+              <div class="admin-card">
+                <div class="admin-card-header">
+                  <h3>Direct Token Creator (Compat)</h3>
+                  <p>Utility dashboard mirroring generated keys</p>
+                </div>
+                
+                <div class="compat-token-content">
+                  <div class="compat-fields">
+                    <div class="form-group">
+                      <label for="token-dept">Assigned Dept</label>
+                      <select id="token-dept">
+                        <option value="BSc Information Technology">BSc Information Technology</option>
+                        <option value="BSc Computer Science">BSc Computer Science</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="token-level">Assigned Level</label>
+                      <select id="token-level">
+                        <option value="Year 1">Year 1</option>
+                        <option value="Year 2">Year 2</option>
+                      </select>
+                    </div>
+                    <button class="btn btn-secondary" onclick="generateOneTimeToken()">Generate Code</button>
+                  </div>
+                  
+                  <div class="compat-display">
+                    <label>Generated Code</label>
+                    <input id="tokenDisplayBox" readonly placeholder="TKN-XXXXXXXX" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Active Tokens Directory -->
+              <div class="admin-card span-2">
+                <div class="admin-card-header">
+                  <h3>Issued Security Tokens Log</h3>
+                  <p>View status of generated registration keys</p>
+                </div>
+                <div class="table-container">
+                  <table class="tokens-table">
+                    <thead>
+                      <tr>
+                        <th>Auth Token Code</th>
+                        <th>Assigned Department</th>
+                        <th>Target Academic Level</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tokenTableBody">
+                      <!-- Rendered by app.js -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- General Console Log -->
+              <div class="admin-card span-2">
+                <div class="admin-card-header">
+                  <h3>Moderator Operations console</h3>
+                  <p>Soft deletions, audit logs, and account reviews</p>
+                </div>
+                <div id="admin-console" class="admin-log-feed">
+                  <!-- Logs -->
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
       </main>
     </div>
 
+    <!-- TOAST POPUPS -->
     <div id="toast" class="toast hidden"></div>
 
+    <!-- Inline view controller script for workspace title and cosmetic enhancements -->
+    <script>
+      // Automatically update the main workspace title on navigation clicks
+      document.addEventListener('DOMContentLoaded', () => {
+        const navButtons = document.querySelectorAll('.main-nav button');
+        const workspaceTitle = document.getElementById('workspace-title');
+        
+        const titleMap = {
+          'directory': 'Student Directory',
+          'chat': 'Class & Direct Chat',
+          'resources': 'Academic Repository',
+          'admin': 'Admin Control Center'
+        };
+
+        navButtons.forEach(btn => {
+          btn.addEventListener('click', () => {
+            const view = btn.dataset.view;
+            if (workspaceTitle && titleMap[view]) {
+              workspaceTitle.textContent = titleMap[view];
+            }
+          });
+        });
+      });
+    </script>
     <script type="module" src="app.js"></script>
   </body>
 </html>

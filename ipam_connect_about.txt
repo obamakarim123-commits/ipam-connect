@@ -1,0 +1,46 @@
+========================================================================
+                      ABOUT IPAM CONNECT
+========================================================================
+
+IPAM Connect is a centralized academic networking and collaboration
+platform designed specifically for the students of the Institute of
+Public Administration and Management (IPAM), University of Sierra Leone.
+
+Designed to replace fragmented and noisy consumer messaging apps like
+WhatsApp and Telegram, IPAM Connect provides a unified, distraction-free
+academic environment for collaborative learning, secure discussions,
+and shared study materials.
+
+------------------------------------------------------------------------
+KEY FEATURES:
+------------------------------------------------------------------------
+
+1. Secure Registration & Verification:
+   - Access is restricted to authorized students using credentials.
+   - Class Representatives are verified via single-use administrator tokens
+     to enable distributed moderation controls.
+
+2. Structured Real-time Communication:
+   - Live Firestore-powered direct messaging and class group discussions.
+   - File attachment support up to 50MB for sharing academic materials.
+
+3. Academic Resource Repository:
+   - A centralized database of slides, lecture notes, assignments,
+     and projects.
+   - Client-side search and tagging taxonomy for zero-latency discovery.
+
+4. Role-based Governance & Moderation:
+   - Students: Upload resources and participate in class discussions.
+   - Class Reps: Manage class-specific channels and moderate messages.
+   - Admins: Manage representative tokens and monitor system logs.
+
+------------------------------------------------------------------------
+TECH STACK:
+------------------------------------------------------------------------
+- Frontend: Vanilla JavaScript (ES6+), HTML5, CSS3 (Glassmorphism design system)
+- Backend: Firebase (Auth, Firestore DB, and Cloud Storage)
+- Deployment: Optimized for static hosts (Vercel)
+
+========================================================================
+Developed for the IPAM Student Community | Powered by Firebase & Vanilla JS
+========================================================================

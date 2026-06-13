@@ -268,25 +268,128 @@ async function loadDirectory() {
 
 async function loadResources() {
   dom.resourceList.innerHTML = '<p>Loading shared materials...</p>';
+  const staticAboutCard = `
+    <div class="card" style="border: 2px solid var(--primary); background: var(--primary-light);">
+      <span class="badge" style="background: var(--primary); color: #ffffff; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; display: inline-block; margin-bottom: 8px;">Official Doc</span>
+      <h3>About IPAM Connect</h3>
+      <p>Category: project_info</p>
+      <p>Uploaded by: Platform Administrator</p>
+      <p style="font-size: 0.85rem; color: var(--muted); margin-top: 4px;">Learn about features, architecture, and guides for IPAM Connect.</p>
+      <a href="ipam_connect_about.txt" download="about_ipam_connect.txt" class="btn btn-primary" style="margin-top: 10px; font-size: 0.85rem; display: inline-flex;">Download Doc</a>
+    </div>
+  `;
   try {
     const snapshot = await getDocs(query(collection(db, 'resources'), orderBy('createdAt', 'desc')));
-    if (snapshot.empty) {
-      dom.resourceList.innerHTML = '<p>No shared resources yet.</p>';
-      return;
+    let itemsHtml = staticAboutCard;
+    if (!snapshot.empty) {
+      itemsHtml += snapshot.docs.map((docSnapshot) => {
+        const item = docSnapshot.data();
+        return `
+          <div class="card">
+            <h3>${item.title}</h3>
+            <p>Category: ${item.category}</p>
+            <p>Uploaded by: ${item.ownerName || 'Unknown'}</p>
+            <a href="${item.fileUrl}" target="_blank" rel="noopener noreferrer">Download</a>
+          </div>
+        `;
+      }).join('');
     }
-    dom.resourceList.innerHTML = snapshot.docs.map((docSnapshot) => {
-      const item = docSnapshot.data();
-      return `
-        <div class="card">
-          <h3>${item.title}</h3>
-          <p>Category: ${item.category}</p>
-          <p>Uploaded by: ${item.ownerName || 'Unknown'}</p>
-          <a href="${item.fileUrl}" target="_blank" rel="noopener noreferrer">Download</a>
-        </div>
-      `;
-    }).join('');
+    dom.resourceList.innerHTML = itemsHtml;
   } catch (error) {
-    dom.resourceList.innerHTML = '<p>Error loading resources.</p>';
+    dom.resourceList.innerHTML = staticAboutCard + '<p style="padding: 12px 0; color: var(--danger);">Error loading other resources.</p>';
+  }
+}
+
+// State and Data for local demo chat channels
+let currentChannel = 'general';
+
+const localChats = {
+  bot: [
+    { sender: 'Study AI Bot', text: 'Hello! I am your Study AI assistant. Ask me anything about study schedules, code compilation, or academic tips!', timestamp: new Date() }
+  ],
+  'it-group': [
+    { sender: 'Fatmata Kamara', text: 'Hey guys, did anyone check out the notes uploaded in the resources tab?', timestamp: new Date(Date.now() - 3600000) },
+    { sender: 'Alimamy Sesay', text: 'Yeah, they are really helpful. Let\'s coordinate a group study session tonight in the library.', timestamp: new Date(Date.now() - 1800000) }
+  ],
+  support: [
+    { sender: 'IPAM Support Desk', text: 'Welcome to the Support Desk. Ask any question about verification, Representative tokens, or user roles here.', timestamp: new Date() }
+  ]
+};
+
+function renderChannelContent() {
+  const activeHeader = document.getElementById('active-chat-header');
+  if (!activeHeader) return;
+
+  if (currentChannel === 'general') {
+    activeHeader.innerHTML = `
+      <div class="active-user-meta">
+        <div class="active-avatar">🏫</div>
+        <div>
+          <h3>General Channel</h3>
+          <p class="subtitle">Live Firestore-powered conversation</p>
+        </div>
+      </div>
+    `;
+    if (dom.chatMessageStreamActive) {
+      dom.chatMessageStreamActive.innerHTML = `<div class="messages-wrap">${dom.chatMessages.innerHTML || '<p class="chat-placeholder-graphic">No messages in General Channel yet.</p>'}</div>`;
+    }
+    if (dom.chatMessageStream) {
+      dom.chatMessageStream.innerHTML = `<div class="messages-wrap">${dom.chatMessages.innerHTML}</div>`;
+    }
+  } else if (currentChannel === 'bot') {
+    activeHeader.innerHTML = `
+      <div class="active-user-meta">
+        <div class="active-avatar">🤖</div>
+        <div>
+          <h3>Study AI Bot</h3>
+          <p class="subtitle">Active AI Assistant</p>
+        </div>
+      </div>
+    `;
+    renderLocalMessages('bot');
+  } else if (currentChannel === 'it-group') {
+    activeHeader.innerHTML = `
+      <div class="active-user-meta">
+        <div class="active-avatar">💻</div>
+        <div>
+          <h3>BSc IT Year 2 Group</h3>
+          <p class="subtitle">Mock Student Discussion Stream</p>
+        </div>
+      </div>
+    `;
+    renderLocalMessages('it-group');
+  } else if (currentChannel === 'support') {
+    activeHeader.innerHTML = `
+      <div class="active-user-meta">
+        <div class="active-avatar">🛠️</div>
+        <div>
+          <h3>Support Desk</h3>
+          <p class="subtitle">IPAM Administrative Support</p>
+        </div>
+      </div>
+    `;
+    renderLocalMessages('support');
+  }
+}
+
+function renderLocalMessages(channelKey) {
+  const msgs = localChats[channelKey] || [];
+  const html = msgs.map(m => {
+    const time = m.timestamp.toLocaleTimeString();
+    return `
+      <div class="message-item">
+        <strong>${m.sender}</strong>
+        <p>${m.text}</p>
+        <small>${time}</small>
+      </div>
+    `;
+  }).join('');
+  
+  if (dom.chatMessageStreamActive) {
+    dom.chatMessageStreamActive.innerHTML = `<div class="messages-wrap">${html}</div>`;
+  }
+  if (dom.chatMessageStream) {
+    dom.chatMessageStream.innerHTML = `<div class="messages-wrap">${html}</div>`;
   }
 }
 
@@ -299,6 +402,71 @@ async function sendMessageHandler(event) {
     return;
   }
 
+  // Handle local channel messages
+  if (currentChannel !== 'general') {
+    let name = 'You';
+    try {
+      const userSnapshot = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      if (userSnapshot.exists()) {
+        name = userSnapshot.data().fullName || 'You';
+      }
+    } catch(e) {}
+
+    localChats[currentChannel].push({
+      sender: name,
+      text: text,
+      timestamp: new Date()
+    });
+
+    dom.chatText.value = '';
+    if (dom.msgInputText) dom.msgInputText.value = '';
+    renderLocalMessages(currentChannel);
+
+    // Automated response simulation
+    setTimeout(() => {
+      let replyText = '';
+      let replySender = '';
+
+      if (currentChannel === 'bot') {
+        replySender = 'Study AI Bot';
+        const lower = text.toLowerCase();
+        if (lower.includes('help')) {
+          replyText = 'I can assist you with academic queries, project planning, and formatting resources. Let me know what you are studying!';
+        } else if (lower.includes('exam') || lower.includes('test') || lower.includes('study')) {
+          replyText = 'Exams require good planning! Split your modules into active recall sessions. Have you checked the Resources page?';
+        } else if (lower.includes('about') || lower.includes('project')) {
+          replyText = 'This project is IPAM Connect, built using Firebase & Vanilla JS. The official documentation can be downloaded from the Resources panel.';
+        } else {
+          replyText = 'Interesting! As a student at IPAM, you can check files uploaded in the Academic Repository or collaborate with classmates in the BSc IT Group.';
+        }
+      } else if (currentChannel === 'it-group') {
+        replySender = Math.random() > 0.5 ? 'Fatmata Kamara' : 'Alimamy Sesay';
+        const replies = [
+          'Cool, let\'s catch up in class.',
+          'Wait, does anyone have the lecture slides for Cyber Security?',
+          'I\'ll upload the worksheet to the resources channel right away.',
+          'Let\'s sit together at the computer lab today to finish the database project.'
+        ];
+        replyText = replies[Math.floor(Math.random() * replies.length)];
+      } else if (currentChannel === 'support') {
+        replySender = 'Support Agent';
+        replyText = 'Thank you. The issue has been registered. If you are an Administrator, you can open the stand-alone Web Console (admin.html) to modify user data directly.';
+      }
+
+      localChats[currentChannel].push({
+        sender: replySender,
+        text: replyText,
+        timestamp: new Date()
+      });
+
+      renderLocalMessages(currentChannel);
+      showToast(`New message from ${replySender}`);
+    }, 1200);
+
+    return;
+  }
+
+  // Handle Firestore general channel messages
   try {
     let attachmentUrl = '';
     let attachmentType = '';
@@ -319,6 +487,7 @@ async function sendMessageHandler(event) {
       timestamp: serverTimestamp()
     });
     dom.chatText.value = '';
+    if (dom.msgInputText) dom.msgInputText.value = '';
     dom.chatAttachment.value = '';
   } catch (error) {
     showToast('Unable to send message.');
@@ -411,8 +580,16 @@ function subscribeToMessages() {
         </div>
       `;
     }).join('');
-    // If redesign middle panel stream exists, mirror content
-    if (dom.chatMessageStream) dom.chatMessageStream.innerHTML = dom.chatMessages.innerHTML;
+    
+    // Only update workspace feeds if active channel is general
+    if (currentChannel === 'general') {
+      if (dom.chatMessageStreamActive) {
+        dom.chatMessageStreamActive.innerHTML = `<div class="messages-wrap">${dom.chatMessages.innerHTML}</div>`;
+      }
+      if (dom.chatMessageStream) {
+        dom.chatMessageStream.innerHTML = `<div class="messages-wrap">${dom.chatMessages.innerHTML}</div>`;
+      }
+    }
   });
 }
 
@@ -561,6 +738,7 @@ onAuthStateChanged(auth, async (user) => {
     dom.appScreen.classList.remove('hidden');
     await renderUserEnvironment(user);
     subscribeToMessages();
+    renderChannelContent();
   } else {
     dom.appScreen.classList.add('hidden');
     dom.authScreen.classList.remove('hidden');
@@ -579,5 +757,19 @@ dom.refreshAdmin.addEventListener('click', loadAdminConsole);
 dom.navButtons.forEach((button) => {
   button.addEventListener('click', () => switchView(button.dataset.view));
 });
+
+// Event delegation for thread selection in chat view
+if (dom.chatThreadsContainer) {
+  dom.chatThreadsContainer.addEventListener('click', (e) => {
+    const item = e.target.closest('.thread-item');
+    if (!item) return;
+    
+    dom.chatThreadsContainer.querySelectorAll('.thread-item').forEach(el => el.classList.remove('active'));
+    item.classList.add('active');
+    
+    currentChannel = item.dataset.channel || 'general';
+    renderChannelContent();
+  });
+}
 
 populateSelectElements();

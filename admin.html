@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IPAM Connect - Admin Control Panel</title>
+    <!-- Import Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      /* ADMIN DESIGN SYSTEM & GLASSMORPHISM STYLES */
+      :root {
+        --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+        --panel-bg: rgba(30, 41, 59, 0.7);
+        --border-color: rgba(255, 255, 255, 0.08);
+        --primary: #10b981; /* Emerald/Green admin theme */
+        --primary-hover: #059669;
+        --primary-shadow: rgba(16, 185, 129, 0.25);
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --radius: 16px;
+        --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+      }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        color: var(--text);
+        background: var(--bg-gradient);
+        background-attachment: fixed;
+        min-height: 100vh;
+        padding: 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      /* ADMIN LOGIN VIEW */
+      .auth-container {
+        width: 100%;
+        max-width: 440px;
+        background: var(--panel-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 40px 32px;
+        box-shadow: var(--shadow);
+        text-align: center;
+      }
+
+      .auth-header img {
+        width: 72px;
+        height: 72px;
+        margin-bottom: 16px;
+      }
+
+      .auth-header h1 {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #ffffff;
+      }
+
+      .auth-header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+        margin-bottom: 28px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 20px;
+        text-align: left;
+      }
+
+      .form-group label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--muted);
+        letter-spacing: 0.05em;
+      }
+
+      .form-group input, .form-group select {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        background: rgba(15, 23, 42, 0.6);
+        color: #ffffff;
+        outline: none;
+        font-size: 0.95rem;
+      }
+
+      .form-group input:focus, .form-group select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+      }
+
+      .btn {
+        width: 100%;
+        padding: 14px;
+        border-radius: 10px;
+        border: none;
+        background: var(--primary);
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        box-shadow: 0 4px 14px var(--primary-shadow);
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .btn:hover {
+        background: var(--primary-hover);
+        transform: translateY(-2px);
+      }
+
+      .btn-danger {
+        background: #ef4444;
+        box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25);
+      }
+      .btn-danger:hover {
+        background: #dc2626;
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: #ffffff;
+        border: 1px solid var(--border-color);
+        box-shadow: none;
+      }
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      /* ADMIN DASHBOARD WORKSPACE */
+      .admin-workspace {
+        display: none;
+        width: 100%;
+        max-width: 1300px;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--panel-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-color);
+        padding: 20px 30px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      .dashboard-header h2 {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.6rem;
+        font-weight: 700;
+      }
+
+      .dashboard-header p {
+        color: var(--muted);
+        font-size: 0.88rem;
+        margin-top: 4px;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 12px;
+      }
+
+      /* STATS PANEL */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+      }
+
+      .stat-card {
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        padding: 24px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .stat-card span {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--muted);
+        letter-spacing: 0.05em;
+      }
+
+      .stat-card h3 {
+        font-family: 'Outfit', sans-serif;
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #ffffff;
+      }
+
+      /* CORE TABS / PANELS */
+      .tabs-navigation {
+        display: flex;
+        gap: 12px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 8px;
+      }
+
+      .nav-tab {
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        font-size: 1rem;
+        font-weight: 600;
+        padding: 10px 16px;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: all 0.2s;
+      }
+
+      .nav-tab:hover {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .nav-tab.active {
+        color: var(--primary);
+        background: rgba(16, 185, 129, 0.08);
+      }
+
+      .tab-panel {
+        display: none;
+        animation: fadeIn 0.3s ease-out;
+      }
+
+      .tab-panel.active {
+        display: block;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* TWO-COLUMN GRID */
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 24px;
+        align-items: flex-start;
+      }
+
+      .admin-card {
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 26px;
+        box-shadow: var(--shadow);
+      }
+
+      .admin-card h3 {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px;
+      }
+
+      /* TABLES */
+      .table-container {
+        overflow-x: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.4);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.9rem;
+      }
+
+      th {
+        background: rgba(15, 23, 42, 0.8);
+        padding: 14px 18px;
+        font-weight: 600;
+        color: #ffffff;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      td {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border-color);
+        color: #e2e8f0;
+      }
+
+      tr:hover td {
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      /* ROLE CHANGER DROPDOWN */
+      .role-select {
+        background: rgba(15, 23, 42, 0.8);
+        color: #ffffff;
+        border: 1px solid var(--border-color);
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+
+      .role-select:focus {
+        border-color: var(--primary);
+      }
+
+      .badge {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 4px;
+        display: inline-block;
+      }
+
+      .badge-success { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+      .badge-warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+      .badge-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+      /* ACTIONS WRAPPER */
+      .actions-wrap {
+        display: flex;
+        gap: 8px;
+      }
+
+      .action-icon-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1.1rem;
+        padding: 4px;
+        border-radius: 4px;
+        opacity: 0.8;
+      }
+      .action-icon-btn:hover {
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      /* TOAST SYSTEM */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: #064e3b;
+        color: #ffffff;
+        padding: 14px 24px;
+        border-radius: 12px;
+        font-size: 0.92rem;
+        font-weight: 500;
+        z-index: 1000;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        border-left: 4px solid var(--primary);
+        display: none;
+      }
+
+      .search-container {
+        margin-bottom: 18px;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 10px 14px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: #ffffff;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- BACKGROUND Ambient effects -->
+    <div style="position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:-10; overflow:hidden; pointer-events:none;">
+      <div style="position:absolute; border-radius:50%; filter:blur(140px); opacity:0.15; top:-10%; left:-5%; width:50vw; height:50vw; background:#10b981;"></div>
+      <div style="position:absolute; border-radius:50%; filter:blur(140px); opacity:0.15; bottom:-10%; right:-5%; width:50vw; height:50vw; background:#6366f1;"></div>
+    </div>
+
+    <!-- 1. ADMIN LOGIN VIEW -->
+    <div id="admin-login-view" class="auth-container">
+      <header class="auth-header">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/e/ea/Wappen_University_of_Sierra_Leone.png" alt="IPAM Logo" />
+        <h1>Admin Web Console</h1>
+        <p>Security portal for database management</p>
+      </header>
+
+      <form id="admin-login-form" class="form-grid">
+        <div class="form-group">
+          <label for="admin-email">Admin Email Address</label>
+          <input type="email" id="admin-email" placeholder="admin@ipam.edu.sl" required />
+        </div>
+        <div class="form-group">
+          <label for="admin-password">Password</label>
+          <input type="password" id="admin-password" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn">Authenticate Dashboard</button>
+      </form>
+    </div>
+
+    <!-- 2. ADMIN DASHBOARD WORKSPACE -->
+    <div id="admin-workspace-view" class="admin-workspace">
+      
+      <!-- Topbar -->
+      <header class="dashboard-header">
+        <div>
+          <h2>IPAM Connect Admin Console</h2>
+          <p id="admin-role-label">Authenticated System Administrator</p>
+        </div>
+        <div class="header-actions">
+          <button id="admin-sync-btn" class="btn btn-secondary" style="padding:10px 16px; font-size:0.9rem;">
+            🔄 Sync System
+          </button>
+          <button id="admin-logout-btn" class="btn btn-danger" style="padding:10px 16px; font-size:0.9rem;">
+            🚪 Log Out
+          </button>
+        </div>
+      </header>
+
+      <!-- Stats Grid -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <span>Registered Users</span>
+          <h3 id="stat-total-users">0</h3>
+        </div>
+        <div class="stat-card">
+          <span>Class Representatives</span>
+          <h3 id="stat-total-reps">0</h3>
+        </div>
+        <div class="stat-card">
+          <span>Issued Rep Tokens</span>
+          <h3 id="stat-total-tokens">0</h3>
+        </div>
+        <div class="stat-card">
+          <span>Shared Resources</span>
+          <h3 id="stat-total-resources">0</h3>
+        </div>
+      </section>
+
+      <!-- Panel navigation -->
+      <nav class="tabs-navigation">
+        <button class="nav-tab active" data-tab="tokens-panel">Class Rep Tokens</button>
+        <button class="nav-tab" data-tab="users-panel">Student Directory</button>
+        <button class="nav-tab" data-tab="moderation-panel">Content Moderation</button>
+      </nav>
+
+      <!-- A. TOKENS TAB PANEL -->
+      <div id="tokens-panel" class="tab-panel active">
+        <div class="dashboard-grid">
+          <!-- Generate Form -->
+          <div class="admin-card">
+            <h3>Generate Rep Token</h3>
+            <form id="console-token-form" class="form-grid">
+              <div class="form-group">
+                <label for="console-token-dept">Target Department</label>
+                <select id="console-token-dept" required>
+                  <option value="BSc Information Technology">BSc Information Technology</option>
+                  <option value="BSc Computer Science">BSc Computer Science</option>
+                  <option value="BSc Software Engineering">BSc Software Engineering</option>
+                  <option value="BSc Cyber Security">BSc Cyber Security</option>
+                  <option value="BSc Data Science">BSc Data Science</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="console-token-level">Academic Level</label>
+                <select id="console-token-level" required>
+                  <option value="Year 1">Year 1</option>
+                  <option value="Year 2">Year 2</option>
+                  <option value="Year 3">Year 3</option>
+                  <option value="Year 4">Year 4</option>
+                </select>
+              </div>
+              <button type="submit" class="btn">Generate Security Token</button>
+            </form>
+            
+            <div style="margin-top:20px; display:none;" id="code-result-box">
+              <div class="form-group">
+                <label>Generated Key Code</label>
+                <input id="console-code-output" readonly style="font-family:monospace; font-weight:700; color:#10b981; border-style:dashed; text-align:center;" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Tokens Table -->
+          <div class="admin-card">
+            <h3>Authorization Tokens Registry</h3>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Token Code</th>
+                    <th>Target Department</th>
+                    <th>Target Level</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="console-tokens-tbody">
+                  <tr>
+                    <td colspan="5" style="text-align:center;">Synchronizing records...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- B. USERS TAB PANEL -->
+      <div id="users-panel" class="tab-panel">
+        <div class="admin-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3>Academic User Accounts Directory</h3>
+            <div class="search-container" style="width:280px; margin-bottom:0;">
+              <input type="text" id="users-search-input" class="search-input" placeholder="Search student by name..." />
+            </div>
+          </div>
+          
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Student Email</th>
+                  <th>Student ID</th>
+                  <th>Department</th>
+                  <th>Level</th>
+                  <th>Role / Access Level</th>
+                  <th>System Operations</th>
+                </tr>
+              </thead>
+              <tbody id="console-users-tbody">
+                <tr>
+                  <td colspan="7" style="text-align:center;">Syncing registered students...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- C. CONTENT MODERATION HUB PANEL -->
+      <div id="moderation-panel" class="tab-panel">
+        <div style="display:flex; gap:24px;">
+          <!-- Left: Messages Moderation -->
+          <div class="admin-card" style="flex:1;">
+            <h3>Active Chat Messages Stream</h3>
+            <div class="table-container" style="max-height:480px; overflow-y:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Sender ID</th>
+                    <th>Message Details</th>
+                    <th>Timestamp</th>
+                    <th>Status</th>
+                    <th>Moderation Action</th>
+                  </tr>
+                </thead>
+                <tbody id="console-messages-tbody">
+                  <tr>
+                    <td colspan="5" style="text-align:center;">Syncing global stream...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Right: Resources moderation -->
+          <div class="admin-card" style="width:420px;">
+            <h3>Academic Resource Repository</h3>
+            <div class="table-container" style="max-height:480px; overflow-y:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Resource Title</th>
+                    <th>Category</th>
+                    <th>Owner</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="console-resources-tbody">
+                  <tr>
+                    <td colspan="4" style="text-align:center;">Syncing shared slides...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TOAST POPUPS -->
+    <div id="admin-toast" class="toast">Successfully generated token.</div>
+
+    <!-- FIREBASE AND SYSTEM SCRIPT MODULE -->
+    <script type="module">
+      import { firebaseConfig } from './firebase-config.js';
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js';
+      import {
+        getAuth,
+        signInWithEmailAndPassword,
+        onAuthStateChanged,
+        signOut
+      } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
+      import {
+        getFirestore,
+        collection,
+        doc,
+        setDoc,
+        getDoc,
+        getDocs,
+        updateDoc,
+        deleteDoc,
+        query,
+        where,
+        orderBy
+      } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js';
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // DOM Elements
+      const dom = {
+        loginView: document.getElementById('admin-login-view'),
+        loginForm: document.getElementById('admin-login-form'),
+        emailInput: document.getElementById('admin-email'),
+        passwordInput: document.getElementById('admin-password'),
+        workspaceView: document.getElementById('admin-workspace-view'),
+        logoutBtn: document.getElementById('admin-logout-btn'),
+        syncBtn: document.getElementById('admin-sync-btn'),
+        roleLabel: document.getElementById('admin-role-label'),
+        
+        // Stats
+        totalUsers: document.getElementById('stat-total-users'),
+        totalReps: document.getElementById('stat-total-reps'),
+        totalTokens: document.getElementById('stat-total-tokens'),
+        totalResources: document.getElementById('stat-total-resources'),
+        
+        // Tokens
+        tokenForm: document.getElementById('console-token-form'),
+        tokenDept: document.getElementById('console-token-dept'),
+        tokenLevel: document.getElementById('console-token-level'),
+        codeResultBox: document.getElementById('code-result-box'),
+        codeOutput: document.getElementById('console-code-output'),
+        tokensTbody: document.getElementById('console-tokens-tbody'),
+        
+        // Users list
+        usersTbody: document.getElementById('console-users-tbody'),
+        usersSearch: document.getElementById('users-search-input'),
+        
+        // Moderation lists
+        messagesTbody: document.getElementById('console-messages-tbody'),
+        resourcesTbody: document.getElementById('console-resources-tbody'),
+        
+        toast: document.getElementById('admin-toast')
+      };
+
+      // Toast utility
+      function showToast(message) {
+        dom.toast.textContent = message;
+        dom.toast.style.display = 'block';
+        setTimeout(() => { dom.toast.style.display = 'none'; }, 3000);
+      }
+
+      // Handle Authentication changes
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          try {
+            // Check if user is admin in users collection
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists() && userDoc.data().role === 'admin') {
+              dom.loginView.style.display = 'none';
+              dom.workspaceView.style.display = 'flex';
+              dom.roleLabel.textContent = `${userDoc.data().fullName} • System Administrator`;
+              syncConsoleDashboard();
+            } else {
+              showToast('Access denied: You are not configured as an administrator.');
+              await signOut(auth);
+            }
+          } catch (e) {
+            showToast('Authorization verification failed.');
+            await signOut(auth);
+          }
+        } else {
+          dom.loginView.style.display = 'block';
+          dom.workspaceView.style.display = 'none';
+        }
+      });
+
+      // Login handler
+      dom.loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = dom.emailInput.value.trim();
+        const password = dom.passwordInput.value;
+
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+        } catch (err) {
+          showToast(err.message || 'Authentication failed.');
+        }
+      });
+
+      // Logout handler
+      dom.logoutBtn.addEventListener('click', async () => {
+        await signOut(auth);
+      });
+
+      // Sync button handler
+      dom.syncBtn.addEventListener('click', () => {
+        syncConsoleDashboard();
+      });
+
+      // CORE DASHBOARD SYNC FUNCTION
+      async function syncConsoleDashboard() {
+        showToast('Syncing system databases...');
+        try {
+          // 1. Fetch counters
+          const usersSnapshot = await getDocs(collection(db, 'users'));
+          const tokensSnapshot = await getDocs(collection(db, 'tokens'));
+          const resourcesSnapshot = await getDocs(collection(db, 'resources'));
+          
+          let totalUsersCount = usersSnapshot.size;
+          let totalRepsCount = 0;
+          usersSnapshot.forEach(doc => {
+            if (doc.data().role === 'class_rep') totalRepsCount++;
+          });
+
+          dom.totalUsers.textContent = totalUsersCount;
+          dom.totalReps.textContent = totalRepsCount;
+          dom.totalTokens.textContent = tokensSnapshot.size;
+          dom.totalResources.textContent = resourcesSnapshot.size;
+
+          // 2. Render Tokens list
+          renderTokensTable(tokensSnapshot);
+
+          // 3. Render Users list
+          renderUsersTable(usersSnapshot);
+
+          // 4. Render Messages and resources
+          const messagesSnapshot = await getDocs(query(collection(db, 'messages'), orderBy('timestamp', 'desc')));
+          renderMessagesTable(messagesSnapshot);
+          renderResourcesTable(resourcesSnapshot);
+
+        } catch (e) {
+          showToast('Failed to pull complete system databases.');
+          console.error(e);
+        }
+      }
+
+      // RENDER AUTHORIZATION TOKENS TABLE
+      function renderTokensTable(snapshot) {
+        if (snapshot.empty) {
+          dom.tokensTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--muted);">No representative keys found in the registry.</td></tr>`;
+          return;
+        }
+
+        dom.tokensTbody.innerHTML = snapshot.docs.map(docSnapshot => {
+          const t = docSnapshot.data();
+          const tokenId = docSnapshot.id;
+          const statusBadge = t.isConsumed 
+            ? `<span class="badge badge-danger">Consumed</span>`
+            : `<span class="badge badge-success">Active</span>`;
+          
+          return `
+            <tr>
+              <td style="font-family:monospace; font-weight:700;">${tokenId}</td>
+              <td>${t.assignedDepartment || 'N/A'}</td>
+              <td>${t.assignedLevel || 'N/A'}</td>
+              <td>${statusBadge}</td>
+              <td class="actions-wrap">
+                <button class="action-icon-btn delete-token-btn" data-id="${tokenId}" title="Delete Token">🗑️</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Add delete event listeners
+        dom.tokensTbody.querySelectorAll('.delete-token-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const tokenId = btn.dataset.id;
+            if (confirm(`Are you sure you want to delete token key ${tokenId}?`)) {
+              try {
+                await deleteDoc(doc(db, 'tokens', tokenId));
+                showToast(`Token ${tokenId} deleted.`);
+                syncConsoleDashboard();
+              } catch (err) {
+                showToast('Unable to delete token.');
+              }
+            }
+          });
+        });
+      }
+
+      // RENDER SYSTEM ACCOUNTS DIRECTORY
+      let cachedUsers = [];
+      function renderUsersTable(snapshot) {
+        if (snapshot.empty) {
+          dom.usersTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--muted);">No users found.</td></tr>`;
+          return;
+        }
+
+        cachedUsers = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+        filterAndRenderUsers();
+      }
+
+      function filterAndRenderUsers() {
+        const queryVal = dom.usersSearch.value.trim().toLowerCase();
+        const filtered = cachedUsers.filter(u => 
+          u.fullName.toLowerCase().includes(queryVal) || 
+          u.email.toLowerCase().includes(queryVal) || 
+          (u.studentId && u.studentId.toLowerCase().includes(queryVal))
+        );
+
+        if (filtered.length === 0) {
+          dom.usersTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--muted);">No matches for query.</td></tr>`;
+          return;
+        }
+
+        dom.usersTbody.innerHTML = filtered.map(u => {
+          const roleVal = u.role || 'student';
+          return `
+            <tr>
+              <td><strong>${u.fullName}</strong></td>
+              <td>${u.email}</td>
+              <td>${u.studentId || 'N/A'}</td>
+              <td>${u.department || 'N/A'}</td>
+              <td>${u.level || 'N/A'}</td>
+              <td>
+                <select class="role-select user-role-changer" data-uid="${u.uid}">
+                  <option value="student" ${roleVal === 'student' ? 'selected' : ''}>Student</option>
+                  <option value="class_rep" ${roleVal === 'class_rep' ? 'selected' : ''}>Class Rep</option>
+                  <option value="admin" ${roleVal === 'admin' ? 'selected' : ''}>Admin</option>
+                </select>
+              </td>
+              <td class="actions-wrap">
+                <button class="action-icon-btn delete-user-btn" data-uid="${u.uid}" title="Delete User Profile">🗑️</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Wire role changers
+        dom.usersTbody.querySelectorAll('.user-role-changer').forEach(select => {
+          select.addEventListener('change', async () => {
+            const uid = select.dataset.uid;
+            const newRole = select.value;
+            try {
+              await updateDoc(doc(db, 'users', uid), { role: newRole });
+              showToast(`Updated user role to ${newRole}`);
+              syncConsoleDashboard();
+            } catch (err) {
+              showToast('Role update failed.');
+            }
+          });
+        });
+
+        // Wire delete buttons
+        dom.usersTbody.querySelectorAll('.delete-user-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const uid = btn.dataset.uid;
+            if (confirm('Permanently delete this user profile? The user will lose access.')) {
+              try {
+                await deleteDoc(doc(db, 'users', uid));
+                showToast('User profile removed.');
+                syncConsoleDashboard();
+              } catch (err) {
+                showToast('Failed to delete account.');
+              }
+            }
+          });
+        });
+      }
+
+      // Search input handler
+      dom.usersSearch.addEventListener('input', () => {
+        filterAndRenderUsers();
+      });
+
+      // RENDER MESSAGES MODERATION TABLE
+      function renderMessagesTable(snapshot) {
+        if (snapshot.empty) {
+          dom.messagesTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--muted);">No messages in discussion logs.</td></tr>`;
+          return;
+        }
+
+        dom.messagesTbody.innerHTML = snapshot.docs.map(docSnapshot => {
+          const m = docSnapshot.data();
+          const docId = docSnapshot.id;
+          const statusVal = m.isDeleted 
+            ? `<span class="badge badge-danger">Deleted</span>`
+            : `<span class="badge badge-success">Active</span>`;
+          const time = m.timestamp ? new Date(m.timestamp.seconds * 1000).toLocaleString() : '...';
+          
+          return `
+            <tr>
+              <td style="font-family:monospace; font-size:0.8rem;" title="${m.senderId}">${m.senderId ? m.senderId.slice(0, 8) + '...' : 'System'}</td>
+              <td>
+                <p style="font-size:0.88rem; max-width:260px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${m.text}">${m.text}</p>
+                ${m.attachmentUrl ? `<a href="${m.attachmentUrl}" target="_blank" style="color:var(--primary); font-size:0.75rem;">Attachment File</a>` : ''}
+              </td>
+              <td style="font-size:0.8rem; color:var(--muted);">${time}</td>
+              <td>${statusVal}</td>
+              <td class="actions-wrap">
+                ${!m.isDeleted ? `<button class="btn btn-secondary soft-delete-msg-btn" data-id="${docId}" style="padding:4px 8px; font-size:0.75rem;">Soft Delete</button>` : ''}
+                <button class="action-icon-btn hard-delete-msg-btn" data-id="${docId}" title="Hard Delete from Database">🗑️</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Wire soft-delete buttons
+        dom.messagesTbody.querySelectorAll('.soft-delete-msg-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            try {
+              await updateDoc(doc(db, 'messages', id), { isDeleted: true });
+              showToast('Message soft-deleted.');
+              syncConsoleDashboard();
+            } catch (err) {
+              showToast('Moderation action failed.');
+            }
+          });
+        });
+
+        // Wire hard delete
+        dom.messagesTbody.querySelectorAll('.hard-delete-msg-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            if (confirm('Permanently delete this message document from Firestore database?')) {
+              try {
+                await deleteDoc(doc(db, 'messages', id));
+                showToast('Message document deleted.');
+                syncConsoleDashboard();
+              } catch (err) {
+                showToast('Deletion failed.');
+              }
+            }
+          });
+        });
+      }
+
+      // RENDER RESOURCES MODERATION TABLE
+      function renderResourcesTable(snapshot) {
+        if (snapshot.empty) {
+          dom.resourcesTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--muted);">No shared materials.</td></tr>`;
+          return;
+        }
+
+        dom.resourcesTbody.innerHTML = snapshot.docs.map(docSnapshot => {
+          const r = docSnapshot.data();
+          const docId = docSnapshot.id;
+          return `
+            <tr>
+              <td><a href="${r.fileUrl}" target="_blank" style="color:#ffffff; font-weight:550; text-decoration:none;">${r.title}</a></td>
+              <td><span class="badge" style="background:rgba(255,255,255,0.06); color:var(--muted);">${r.category}</span></td>
+              <td style="font-size:0.8rem; color:var(--muted);">${r.ownerName || 'Anonymous'}</td>
+              <td>
+                <button class="action-icon-btn delete-resource-btn" data-id="${docId}" title="Delete File Document">🗑️</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Wire delete buttons
+        dom.resourcesTbody.querySelectorAll('.delete-resource-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            if (confirm('Remove this academic resource permanently?')) {
+              try {
+                await deleteDoc(doc(db, 'resources', id));
+                showToast('Resource record removed.');
+                syncConsoleDashboard();
+              } catch (err) {
+                showToast('Deletion failed.');
+              }
+            }
+          });
+        });
+      }
+
+      // SUBMIT TOKEN CREATOR
+      dom.tokenForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const dept = dom.tokenDept.value;
+        const level = dom.tokenLevel.value;
+
+        const tokenId = `TKN-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+        try {
+          await setDoc(doc(db, 'tokens', tokenId), {
+            tokenId,
+            isConsumed: false,
+            assignedDepartment: dept,
+            assignedLevel: level,
+            consumedBy: null,
+            invalidatedAt: null
+          });
+          dom.codeOutput.value = tokenId;
+          dom.codeResultBox.style.display = 'block';
+          showToast(`Successfully created token code ${tokenId}`);
+          dom.tokenForm.reset();
+          syncConsoleDashboard();
+        } catch (err) {
+          showToast('Failed to write representative token.');
+        }
+      });
+
+      // TAB NAVIGATION SWITCHING
+      const tabs = document.querySelectorAll('.nav-tab');
+      const panels = document.querySelectorAll('.tab-panel');
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('active'));
+          panels.forEach(p => p.classList.remove('active'));
+          
+          tab.classList.add('active');
+          const targetPanel = document.getElementById(tab.dataset.tab);
+          if (targetPanel) targetPanel.classList.add('active');
+        });
+      });
+    </script>
+  </body>
+</html>
