@@ -569,11 +569,24 @@ function subscribeToMessages() {
   onSnapshot(messagesQuery, (snapshot) => {
     dom.chatMessages.innerHTML = snapshot.docs.map((docSnapshot) => {
       const message = docSnapshot.data();
-      const time = message.timestamp ? new Date(message.timestamp.seconds * 1000).toLocaleTimeString() : '...';
-      const attachmentLink = message.attachmentUrl ? `<a href="${message.attachmentUrl}" target="_blank">Download attachment</a>` : '';
-      const deletedClass = message.isDeleted ? 'deleted' : '';
+      // Guard: transient null timestamp during optimistic local write
+      const time = (message.timestamp && message.timestamp.seconds != null)
+        ? new Date(message.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '…';
+      const attachmentLink = message.attachmentUrl
+        ? `<a href="${message.attachmentUrl}" target="_blank" rel="noopener noreferrer">📎 Download attachment</a>`
+        : '';
+      if (message.isDeleted) {
+        return `
+          <div class="message-item deleted">
+            <small>${message.senderName || 'Unknown'} · ${time}</small>
+            <em style="font-style:italic;color:#94a3b8;">🚫 This message was deleted by a moderator.</em>
+          </div>
+        `;
+      }
       return `
-        <div class="message-item ${deletedClass}">
+        <div class="message-item">
+          <strong style="font-size:0.82rem;">${message.senderName || 'Unknown'}</strong>
           <p>${message.text}</p>
           ${attachmentLink}
           <small>${time}</small>
@@ -674,32 +687,52 @@ window.generateOneTimeToken = async function() {
   }
 };
 
-// Ensure admin console load populates compatibility token table
-const _loadAdminConsole = loadAdminConsole;
-loadAdminConsole = async function() {
-  await _loadAdminConsole();
+// Ensure admin console load populates compatibility token table (new Tailwind layout)
+async function _patchedLoadAdminConsole() {
+  await loadAdminConsole();
   try {
     const tokensSnapshot = await getDocs(collection(db, 'tokens'));
     const table = document.getElementById('tokenTableBody');
     if (table) {
       table.innerHTML = tokensSnapshot.docs.map(docSnapshot => {
         const t = docSnapshot.data();
-        return `<tr><td style="padding:6px 8px; border-bottom:1px solid #E2E8F0;">${docSnapshot.id}</td><td style="padding:6px 8px; border-bottom:1px solid #E2E8F0;">${t.assignedDepartment||''}</td><td style="padding:6px 8px; border-bottom:1px solid #E2E8F0;">${t.assignedLevel||''}</td></tr>`;
+        const statusClass = t.isConsumed ? 'color:#10b981;font-weight:600;' : 'color:#f59e0b;font-weight:600;';
+        const statusText  = t.isConsumed ? '✓ Consumed' : '○ Available';
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="px-4 py-3 font-mono text-xs text-pro-blue-600 font-bold">${docSnapshot.id}</td>
+            <td class="px-4 py-3 text-sm text-slate-600">${t.assignedDepartment||'—'}</td>
+            <td class="px-4 py-3 text-sm text-slate-600">${t.assignedLevel||'—'}</td>
+            <td class="px-4 py-3 text-xs" style="${statusClass}">${statusText}</td>
+          </tr>
+        `;
       }).join('');
     }
   } catch (e) {
-    // ignore
+    // ignore — token table is cosmetic
   }
-};
+}
+// Replace the reference used by event listeners
+const _origLoadAdminConsole = loadAdminConsole;
+loadAdminConsole = _patchedLoadAdminConsole;
 
 async function renderUserEnvironment(user) {
   try {
     const userSnapshot = await getDoc(doc(db, 'users', user.uid));
     const userData = userSnapshot.exists() ? userSnapshot.data() : null;
     dom.userRoleLabel.textContent = userData ? `${userData.fullName} • ${userData.role || 'student'}` : 'Loading profile...';
+
+    // ── New Discord-layout bridges ───────────────────────────────
+    if (typeof window.updateNavFooter === 'function' && userData) {
+      window.updateNavFooter(userData);
+    }
+
     if (userData?.role === 'admin') {
       dom.adminTab.classList.remove('hidden');
       dom.adminSection.classList.remove('hidden');
+      // Also reveal the admin rail icon in new layout
+      const adminRailBtn = document.getElementById('admin-tab');
+      if (adminRailBtn) adminRailBtn.classList.remove('hidden');
       loadAdminConsole();
     } else {
       dom.adminTab.classList.add('hidden');
@@ -707,6 +740,16 @@ async function renderUserEnvironment(user) {
     }
     loadDirectory();
     loadResources();
+
+    // Populate the members pane with directory snapshot
+    try {
+      const dirSnap = await getDocs(collection(db, 'users'));
+      const allUsers = dirSnap.docs.map(d => d.data());
+      if (typeof window.updateMembersPane === 'function') {
+        window.updateMembersPane(allUsers);
+      }
+    } catch (_) { /* members pane is cosmetic — ignore failures */ }
+
   } catch (error) {
     showToast('Unable to load user profile.');
   }

@@ -9,6 +9,7 @@
     "install:firebase": "npm install firebase@9.22.1 --save"
   },
   "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
     "firebase": "^12.14.0"
   }
 }

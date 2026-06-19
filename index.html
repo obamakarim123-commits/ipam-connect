@@ -2,527 +2,1532 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IPAM Connect - Student Academic Networking</title>
-    <!-- Import Google Fonts: Outfit for headings, Inter for body -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0" />
+    <title>IPAM Connect — Student Academic Networking Platform</title>
+    <meta name="description" content="IPAM Connect is the official real-time academic networking and communication hub for students of the Institute of Public Administration and Management, University of Sierra Leone." />
+
+    <!-- Google Fonts: Inter + Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN (play.tailwindcss.com — no build step) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans:    ['Inter', 'sans-serif'],
+              display: ['Outfit', 'sans-serif'],
+            },
+            colors: {
+              cream:  { DEFAULT: '#fdf8f3', 50: '#fffef9', 100: '#fdf8f3', 200: '#f5ead9' },
+              brown:  { light: '#c4a882', DEFAULT: '#8b6f47', dark: '#5c4632' },
+              sand:   { light: '#ede0cc', DEFAULT: '#d4b896' },
+              'pro-blue': {
+                50:  '#eff6ff',
+                100: '#dbeafe',
+                200: '#bfdbfe',
+                400: '#60a5fa',
+                500: '#3b82f6',
+                600: '#2563eb',
+                700: '#1d4ed8',
+                800: '#1e40af',
+                900: '#1e3a8a',
+              },
+            },
+            boxShadow: {
+              'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.06)',
+              'card':  '0 4px 16px rgba(0,0,0,0.05)',
+              'msg':   '0 2px 8px rgba(0,0,0,0.04)',
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Local CSS (existing styles.css — augments Tailwind) -->
     <link rel="stylesheet" href="styles.css" />
+
+    <!-- RBAC-specific styles + new message card styles -->
+    <style>
+      /* ── Document Base ────────────────────────────────────────────── */
+      html { scroll-behavior: smooth; }
+      body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #f5f0e8 0%, #edf3fc 55%, #f9f3ee 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        overflow-x: hidden;
+        color: #1e293b;
+      }
+
+      /* ── Layout Shells ────────────────────────────────────────────── */
+      #auth-screen  { display: flex;  }
+      #app-screen   { display: none;  }
+      #app-screen.visible { display: flex; }
+
+      /* ── Announcement Bar ─────────────────────────────────────────── */
+      #announcement-bar {
+        background: linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%);
+        color: #fff;
+        font-size: 0.82rem;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        padding: 9px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 40px;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        box-shadow: 0 2px 8px rgba(30,58,138,0.15);
+      }
+      #announcement-bar .ann-icon   { font-size: 1rem; opacity: 0.85; flex-shrink: 0; }
+      #announcement-text            { flex: 1; }
+      #announcement-input {
+        flex: 1;
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 6px;
+        padding: 4px 10px;
+        color: #fff;
+        font-size: 0.82rem;
+        outline: none;
+      }
+      #announcement-input::placeholder { color: rgba(255,255,255,0.5); }
+      #announcement-input:focus { background: rgba(255,255,255,0.25); }
+      #announcement-save {
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.35);
+        border-radius: 6px;
+        padding: 4px 14px;
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      #announcement-save:hover { background: rgba(255,255,255,0.35); }
+
+      /* ── Discord-style 4-Column Discord Layout ────────────────────── */
+      #app-screen {
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .app-shell {
+        display: grid;
+        grid-template-columns: 68px 240px 1fr 220px;
+        flex: 1;
+        overflow: hidden;
+        height: calc(100vh - 40px);
+        min-width: 360px;
+      }
+
+      /* ── Column 1: Department Icon Rail ──────────────────────────── */
+      .dept-rail {
+        background: #1e2a3a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 12px 0;
+        gap: 6px;
+        overflow-y: auto;
+        border-right: 1px solid rgba(255,255,255,0.04);
+      }
+      .dept-rail::-webkit-scrollbar { width: 0; }
+      .rail-icon {
+        width: 46px; height: 46px;
+        border-radius: 50%;
+        background: #2d3d52;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.15rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+        position: relative;
+        border: 2px solid transparent;
+        color: #94a3b8;
+        text-decoration: none;
+        flex-shrink: 0;
+      }
+      .rail-icon::before {
+        content: '';
+        position: absolute;
+        left: -10px;
+        width: 4px; height: 0;
+        background: #fff;
+        border-radius: 0 4px 4px 0;
+        transition: height 0.2s;
+      }
+      .rail-icon:hover { border-radius: 30%; background: #2563eb; color: #fff; }
+      .rail-icon:hover::before { height: 20px; }
+      .rail-icon.active { border-radius: 30%; background: #2563eb; color: #fff; border-color: rgba(255,255,255,0.1); }
+      .rail-icon.active::before { height: 40px; }
+      .rail-separator {
+        width: 32px; height: 2px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 2px;
+        margin: 4px 0;
+        flex-shrink: 0;
+      }
+      .rail-icon-tooltip {
+        position: absolute;
+        left: calc(100% + 12px);
+        background: #0f172a;
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 6px;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s;
+        z-index: 100;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      }
+      .rail-icon:hover .rail-icon-tooltip { opacity: 1; }
+
+      /* ── Column 2: Channel / Level Navigation Pane ───────────────── */
+      .nav-pane {
+        background: #f4ede0;
+        border-right: 1px solid #e5d9c8;
+        display: flex; flex-direction: column;
+        overflow: hidden;
+      }
+      .nav-pane-header {
+        padding: 14px 16px 12px;
+        border-bottom: 1px solid #e5d9c8;
+        background: linear-gradient(180deg, #ede0cc 0%, #f4ede0 100%);
+      }
+      .nav-pane-title {
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #3d2b1f;
+        line-height: 1.2;
+        margin-bottom: 2px;
+      }
+      .nav-pane-sub {
+        font-size: 0.72rem;
+        color: #8b6f47;
+        font-weight: 500;
+      }
+      .nav-pane-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 0;
+      }
+      .nav-section-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: #8b6f47;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 10px 16px 4px;
+      }
+      .channel-item {
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px 16px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #5c4632;
+        cursor: pointer;
+        border-radius: 4px;
+        margin: 1px 6px;
+        transition: all 0.15s;
+        border: none; background: transparent;
+        width: calc(100% - 12px);
+        text-align: left;
+      }
+      .channel-item:hover { background: rgba(139,111,71,0.12); color: #3d2b1f; }
+      .channel-item.active {
+        background: rgba(37,99,235,0.1);
+        color: #1d4ed8;
+        font-weight: 600;
+      }
+      .channel-item .ch-hash {
+        font-size: 1rem;
+        opacity: 0.5;
+        flex-shrink: 0;
+        width: 16px;
+      }
+      .channel-item .ch-unread {
+        margin-left: auto;
+        background: #2563eb;
+        color: #fff;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 9999px;
+        min-width: 18px;
+        text-align: center;
+      }
+      .nav-pane-footer {
+        padding: 10px 12px;
+        border-top: 1px solid #e5d9c8;
+        background: #ede0cc;
+        display: flex; align-items: center; gap: 8px;
+      }
+      .nav-footer-avatar {
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.9rem;
+        color: #fff;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .nav-footer-info { flex: 1; min-width: 0; }
+      .nav-footer-name { font-size: 0.82rem; font-weight: 600; color: #3d2b1f; }
+      .nav-footer-role { font-size: 0.68rem; color: #8b6f47; }
+      #logout-btn-rail {
+        background: transparent; border: none;
+        cursor: pointer; padding: 4px; border-radius: 6px;
+        color: #8b6f47; font-size: 1rem;
+        transition: color 0.15s, background 0.15s;
+        flex-shrink: 0;
+      }
+      #logout-btn-rail:hover { background: rgba(239,68,68,0.1); color: #ef4444; }
+
+      /* ── Column 3: Chat Viewport (main content) ───────────────────── */
+      .chat-viewport {
+        display: flex; flex-direction: column;
+        background: #ffffff;
+        overflow: hidden;
+        position: relative;
+      }
+      .chat-viewport-header {
+        padding: 12px 20px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex; align-items: center; gap: 12px;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        flex-shrink: 0;
+      }
+      .viewport-ch-icon {
+        font-size: 1.1rem;
+        color: #94a3b8;
+        flex-shrink: 0;
+      }
+      .viewport-ch-name {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1e293b;
+      }
+      .viewport-ch-meta {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        margin-left: 4px;
+      }
+      .realtime-dot {
+        margin-left: auto;
+        font-size: 0.72rem;
+        color: #10b981;
+        font-weight: 600;
+        background: rgba(16,185,129,0.08);
+        padding: 3px 10px;
+        border-radius: 9999px;
+        display: flex; align-items: center; gap: 5px;
+        flex-shrink: 0;
+      }
+      .realtime-dot::before {
+        content: '';
+        width: 6px; height: 6px;
+        background: #10b981;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.3; }
+      }
+
+      /* Feed */
+      #message-feed {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 20px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        background: #fafbfc;
+      }
+      #message-feed::-webkit-scrollbar { width: 6px; }
+      #message-feed::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.1);
+        border-radius: 9999px;
+      }
+
+      /* ── Message Cards ────────────────────────────────────────────── */
+      .msg-card {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        transition: background 0.15s;
+        position: relative;
+      }
+      .msg-card:hover { background: rgba(0,0,0,0.025); }
+      .msg-card--deleted {
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+      }
+      .msg-card--own .msg-sender-row { flex-direction: row-reverse; }
+      .msg-card--own .msg-text {
+        background: linear-gradient(135deg, #2563eb, #3b82f6);
+        color: #fff;
+        align-self: flex-end;
+      }
+
+      .msg-sender-row {
+        display: flex; align-items: center; gap: 8px;
+      }
+      .msg-avatar {
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #c4a882, #8b6f47);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+        text-transform: uppercase;
+      }
+      .msg-sender-name {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #374151;
+      }
+      .msg-time {
+        font-size: 0.68rem;
+        color: #94a3b8;
+        margin-left: 2px;
+      }
+
+      .msg-body { padding-left: 40px; }
+      .msg-text {
+        font-size: 0.88rem;
+        color: #1e293b;
+        line-height: 1.5;
+        background: #f1f5f9;
+        padding: 8px 12px;
+        border-radius: 0 10px 10px 10px;
+        display: inline-block;
+        max-width: 90%;
+        word-break: break-word;
+        white-space: pre-wrap;
+      }
+      .msg-deleted-notice {
+        font-style: italic;
+        font-size: 0.82rem;
+        color: #94a3b8;
+      }
+
+      .msg-attachment { margin-top: 6px; }
+      .msg-attachment-img {
+        max-width: min(320px, 80%);
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        display: block;
+        cursor: zoom-in;
+      }
+      .msg-attachment-link {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 14px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #2563eb;
+        text-decoration: none;
+        transition: all 0.2s;
+      }
+      .msg-attachment-link:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+      /* ── RBAC Delete Button ───────────────────────────────────────── */
+      .msg-actions {
+        padding-left: 40px;
+        display: flex; gap: 6px;
+        margin-top: 2px;
+      }
+      .rbac-delete-btn {
+        display: none; /* hidden by default, shown by security.js */
+        align-items: center; gap: 4px;
+        padding: 3px 10px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #ef4444;
+        background: rgba(239,68,68,0.06);
+        border: 1px solid rgba(239,68,68,0.2);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .msg-card:hover .rbac-delete-btn { display: inline-flex; }
+      .rbac-delete-btn:hover {
+        background: #ef4444;
+        color: #fff;
+        border-color: #ef4444;
+      }
+      .rbac-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      /* ── Role Badges ──────────────────────────────────────────────── */
+      .role-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 0.72rem; font-weight: 700;
+        padding: 2px 8px; border-radius: 9999px;
+      }
+      .badge--admin   { background: #fef3c7; color: #92400e; }
+      .badge--rep     { background: #ede9fe; color: #5b21b6; }
+      .badge--student { background: #dbeafe; color: #1e40af; }
+
+      /* ── Composer ─────────────────────────────────────────────────── */
+      #chat-composer {
+        padding: 12px 16px;
+        border-top: 1px solid #f1f5f9;
+        background: #fff;
+        display: flex; align-items: flex-end; gap: 10px;
+        flex-shrink: 0;
+      }
+      #attach-btn {
+        width: 40px; height: 40px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 1rem;
+        color: #64748b; flex-shrink: 0;
+        transition: all 0.2s;
+      }
+      #attach-btn:hover { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+      #chat-text-input {
+        flex: 1;
+        min-height: 40px; max-height: 120px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.9rem;
+        color: #1e293b;
+        resize: none;
+        outline: none;
+        line-height: 1.45;
+        transition: border 0.2s, background 0.2s;
+        overflow-y: auto;
+      }
+      #chat-text-input:focus { border-color: #2563eb; background: #fff; }
+      #chat-text-input::placeholder { color: #94a3b8; }
+      #file-preview-bar {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 0.78rem; color: #2563eb;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 4px 10px;
+        flex-shrink: 0;
+      }
+      #file-preview-bar.hidden { display: none; }
+      #file-preview-bar button {
+        background: none; border: none;
+        color: #94a3b8; cursor: pointer;
+        font-size: 0.9rem; padding: 0 2px;
+      }
+      #upload-progress-bar {
+        height: 3px;
+        background: linear-gradient(90deg, #2563eb, #60a5fa);
+        border-radius: 9999px;
+        width: 0%;
+        transition: width 0.3s ease;
+        flex-shrink: 0;
+      }
+      #send-btn {
+        width: 40px; height: 40px;
+        border-radius: 10px;
+        background: #2563eb;
+        border: none;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; color: #fff;
+        font-size: 1rem; flex-shrink: 0;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+      }
+      #send-btn:hover { background: #1d4ed8; transform: scale(1.05); }
+      #send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+      /* ── Column 4: Active Members Pane ───────────────────────────── */
+      .members-pane {
+        background: #f9f5ef;
+        border-left: 1px solid #e5d9c8;
+        overflow-y: auto;
+        display: flex; flex-direction: column;
+      }
+      .members-pane-header {
+        padding: 14px 16px 10px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #8b6f47;
+        border-bottom: 1px solid #e5d9c8;
+        background: #f4ede0;
+        flex-shrink: 0;
+      }
+      .members-list { padding: 8px; flex: 1; }
+      .member-item {
+        display: flex; align-items: center; gap: 9px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: default;
+        transition: background 0.15s;
+      }
+      .member-item:hover { background: rgba(139,111,71,0.08); }
+      .member-avatar {
+        width: 30px; height: 30px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #c4a882, #8b6f47);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.78rem; font-weight: 700; color: #fff;
+        flex-shrink: 0; position: relative;
+        text-transform: uppercase;
+      }
+      .member-status-dot {
+        position: absolute; bottom: 0; right: 0;
+        width: 9px; height: 9px;
+        border-radius: 50%;
+        border: 2px solid #f9f5ef;
+        background: #94a3b8;
+      }
+      .member-status-dot.online  { background: #10b981; }
+      .member-status-dot.away    { background: #f59e0b; }
+      .member-info { flex: 1; min-width: 0; }
+      .member-name { font-size: 0.8rem; font-weight: 600; color: #3d2b1f; }
+      .member-role { font-size: 0.68rem; color: #8b6f47; margin-top: 1px; }
+
+      /* ── "No channel selected" placeholder ───────────────────────── */
+      .feed-placeholder {
+        flex: 1;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 12px; text-align: center; padding: 32px;
+        color: #94a3b8;
+      }
+      .feed-placeholder-icon { font-size: 3rem; opacity: 0.3; }
+      .feed-placeholder p { font-size: 0.9rem; line-height: 1.5; max-width: 260px; }
+
+      /* ── Auth Screen ──────────────────────────────────────────────── */
+      #auth-screen {
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: linear-gradient(135deg, #f5f0e8 0%, #edf3fc 55%, #f9f3ee 100%);
+        background-attachment: fixed;
+      }
+
+      /* ── Upload Progress ──────────────────────────────────────────── */
+      #upload-progress-wrap {
+        height: 3px; background: #f1f5f9;
+        margin: 0 16px 8px;
+        border-radius: 9999px;
+        overflow: hidden;
+      }
+      #upload-progress-wrap.hidden { display: none; }
+
+      /* ── Toast ────────────────────────────────────────────────────── */
+      #toast {
+        position: fixed; bottom: 24px; right: 24px;
+        background: #0f172a;
+        color: #fff;
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-size: 0.88rem; font-weight: 500;
+        z-index: 9999;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        border-left: 4px solid #2563eb;
+        animation: toastIn 0.3s cubic-bezier(0.16,1,0.3,1);
+        max-width: 320px;
+      }
+      #toast.hidden { display: none; }
+      @keyframes toastIn {
+        from { opacity: 0; transform: translateX(100%) scale(0.9); }
+        to   { opacity: 1; transform: translateX(0) scale(1); }
+      }
+
+      /* ── Mobile Drawer Toggle ─────────────────────────────────────── */
+      #mobile-menu-btn {
+        display: none;
+        position: fixed; top: 48px; left: 12px;
+        z-index: 200;
+        background: #1e2a3a;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      }
+      @media (max-width: 860px) {
+        #mobile-menu-btn { display: block; }
+        .app-shell {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto 1fr auto;
+        }
+        .dept-rail { display: none; }
+        .nav-pane {
+          position: fixed; top: 0; left: 0;
+          width: 260px; height: 100vh;
+          z-index: 150;
+          transform: translateX(-100%);
+          transition: transform 0.25s ease;
+          box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+        }
+        .nav-pane.drawer-open { transform: translateX(0); }
+        .members-pane { display: none; }
+        .chat-viewport { height: calc(100vh - 40px); }
+      }
+      @media (max-width: 1100px) and (min-width: 861px) {
+        .app-shell { grid-template-columns: 68px 200px 1fr; }
+        .members-pane { display: none; }
+      }
+    </style>
   </head>
   <body>
-    <!-- Background Gradient Grids -->
-    <div class="bg-gradient-shapes">
-      <div class="shape shape-1"></div>
-      <div class="shape shape-2"></div>
-    </div>
 
-    <!-- AUTHENTICATION SCREEN -->
-    <div class="auth-wrapper" id="auth-screen">
-      <div class="auth-container">
-        <header class="auth-header">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/e/ea/Wappen_University_of_Sierra_Leone.png" alt="IPAM Logo" class="auth-logo" />
-          <h1>IPAM Connect</h1>
-          <p>A unified academic space built exclusively for students of USL</p>
-        </header>
+  <!-- ════════════════════════════════════════════════════════════════
+       AUTH SCREEN
+  ═════════════════════════════════════════════════════════════════ -->
+  <div id="auth-screen">
+    <div class="w-full max-w-md">
+      <!-- Header -->
+      <header class="text-center mb-8">
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/e/ea/Wappen_University_of_Sierra_Leone.png"
+          alt="IPAM USL Logo"
+          class="w-20 h-20 object-contain mx-auto mb-4 drop-shadow-lg"
+        />
+        <h1 class="font-display text-4xl font-bold text-slate-800 mb-1">IPAM Connect</h1>
+        <p class="text-slate-500 text-sm">Unified academic networking for USL students</p>
+      </header>
 
-        <main class="auth-card">
-          <div class="auth-tabs">
-            <button class="tab-btn active" data-target="login-view">Log In</button>
-            <button class="tab-btn" data-target="register-view">Register</button>
-          </div>
+      <!-- Auth Card -->
+      <div class="bg-white/80 backdrop-blur-xl border border-white/60 rounded-3xl p-8 shadow-glass">
+        <!-- Tabs -->
+        <div class="flex bg-black/[0.04] p-1 rounded-xl mb-6 gap-1">
+          <button
+            id="tab-login"
+            class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all bg-white text-pro-blue-600 shadow-sm"
+            onclick="authTab('login')"
+          >Sign In</button>
+          <button
+            id="tab-register"
+            class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all text-slate-500 hover:text-slate-700"
+            onclick="authTab('register')"
+          >Create Account</button>
+        </div>
 
-          <!-- Login Panel -->
-          <section id="login-view" class="auth-panel active">
-            <form id="login-form" class="form-grid">
-              <div class="form-group">
-                <label for="login-email">Email Address</label>
-                <div class="input-wrapper">
-                  <span class="input-icon">✉️</span>
-                  <input type="email" id="login-email" placeholder="student@ipam.edu.sl" required />
-                </div>
+        <!-- Login Panel -->
+        <section id="panel-login">
+          <form id="login-form" class="flex flex-col gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label for="login-email" class="text-xs font-semibold uppercase tracking-wide text-slate-600">Email</label>
+              <div class="relative">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">✉️</span>
+                <input id="login-email" type="email" placeholder="student@ipam.edu.sl" required
+                  class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-white/80 text-sm outline-none focus:border-pro-blue-500 focus:ring-4 focus:ring-pro-blue-500/10 transition-all" />
               </div>
-              <div class="form-group">
-                <label for="login-password">Password</label>
-                <div class="input-wrapper">
-                  <span class="input-icon">🔒</span>
-                  <input type="password" id="login-password" placeholder="••••••••" required minlength="6" />
-                </div>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label for="login-password" class="text-xs font-semibold uppercase tracking-wide text-slate-600">Password</label>
+              <div class="relative">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">🔒</span>
+                <input id="login-password" type="password" placeholder="••••••••" required minlength="6"
+                  class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-white/80 text-sm outline-none focus:border-pro-blue-500 focus:ring-4 focus:ring-pro-blue-500/10 transition-all" />
               </div>
-              <button type="submit" class="btn btn-primary">Sign In</button>
-            </form>
-          </section>
+            </div>
+            <button type="submit"
+              class="w-full py-3 bg-pro-blue-600 hover:bg-pro-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-pro-blue-500/30 transition-all hover:-translate-y-0.5 text-sm mt-1">
+              Sign In →
+            </button>
+          </form>
+        </section>
 
-          <!-- Register Panel -->
-          <section id="register-view" class="auth-panel">
-            <form id="register-form" class="form-grid">
-              <div class="form-group">
-                <label for="register-name">Full Name</label>
-                <div class="input-wrapper">
-                  <span class="input-icon">👤</span>
-                  <input type="text" id="register-name" placeholder="John Doe" required />
+        <!-- Register Panel -->
+        <section id="panel-register" class="hidden">
+          <form id="register-form" class="flex flex-col gap-3.5">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex flex-col gap-1.5">
+                <label for="register-name" class="text-xs font-semibold uppercase tracking-wide text-slate-600">Full Name</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">👤</span>
+                  <input id="register-name" type="text" placeholder="John Doe" required
+                    class="w-full pl-8 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white/80 text-sm outline-none focus:border-pro-blue-500 focus:ring-2 focus:ring-pro-blue-500/10 transition-all" />
                 </div>
               </div>
-              <div class="form-group">
-                <label for="register-email">Email Address</label>
-                <div class="input-wrapper">
-                  <span class="input-icon">✉️</span>
-                  <input type="email" id="register-email" placeholder="johndoe@ipam.edu.sl" required />
+              <div class="flex flex-col gap-1.5">
+                <label for="register-student-id" class="text-xs font-semibold uppercase tracking-wide text-slate-600">Student ID</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🆔</span>
+                  <input id="register-student-id" type="text" placeholder="IPAM-2026-0001" required
+                    class="w-full pl-8 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white/80 text-sm outline-none focus:border-pro-blue-500 focus:ring-2 focus:ring-pro-blue-500/10 transition-all" />
                 </div>
               </div>
-              <div class="form-group">
-                <label for="register-password">Password</label>
-                <div class="input-wrapper">
-                  <span class="input-icon">🔒</span>
-                  <input type="password" id="register-password" placeholder="Min. 6 characters" required minlength="6" />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label for="register-email" class="text-xs font-semibold uppercase tracking-wide text-slate-600">Email</label>
+              <div class="relative">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">✉️</span>
+                <input id="register-email" type="email" placeholder="johndoe@ipam.edu.sl" required
+                  class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 text-sm outline-none focus:border-pro-blue-500 focus:ring-2 focus:ring-pro-blue-500/10 transition-all" />
+              </div>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label for="register-password" class="text-xs font-semibold uppercase tracking-wide text-slate-600">Password</label>
+              <div class="relative">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">🔒</span>
+                <input id="register-password" type="password" placeholder="Min. 6 characters" required minlength="6"
+                  class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 text-sm outline-none focus:border-pro-blue-500 focus:ring-2 focus:ring-pro-blue-500/10 transition-all" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex flex-col gap-1.5">
+                <label for="register-department" class="text-xs font-semibold uppercase tracking-wide text-slate-600">Department</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🏢</span>
+                  <select id="register-department" required
+                    class="w-full pl-8 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white/80 text-sm outline-none focus:border-pro-blue-500 appearance-none cursor-pointer transition-all"></select>
                 </div>
               </div>
-              <div class="form-group">
-                <label for="register-student-id">Student ID</label>
-                <div class="input-wrapper">
-                  <span class="input-icon">🆔</span>
-                  <input type="text" id="register-student-id" required placeholder="IPAM-2026-0001" />
+              <div class="flex flex-col gap-1.5">
+                <label for="register-level" class="text-xs font-semibold uppercase tracking-wide text-slate-600">Year</label>
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">📈</span>
+                  <select id="register-level" required
+                    class="w-full pl-8 pr-3 py-2.5 rounded-xl border border-slate-200 bg-white/80 text-sm outline-none focus:border-pro-blue-500 appearance-none cursor-pointer transition-all"></select>
                 </div>
               </div>
-              <div class="form-group">
-                <label for="register-department">Department</label>
-                <div class="input-wrapper">
-                  <span class="input-icon">🏢</span>
-                  <select id="register-department" required></select>
-                </div>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label for="register-token" class="text-xs font-semibold uppercase tracking-wide text-slate-600">Class Rep Token <span class="text-slate-400 normal-case font-normal">(optional)</span></label>
+              <div class="relative">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">🔑</span>
+                <input id="register-token" type="text" placeholder="TKN-XXXXXXXX"
+                  class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 text-sm outline-none focus:border-pro-blue-500 focus:ring-2 focus:ring-pro-blue-500/10 transition-all" />
               </div>
-              <div class="form-group">
-                <label for="register-level">Academic Level</label>
-                <div class="input-wrapper">
-                  <span class="input-icon">📈</span>
-                  <select id="register-level" required></select>
-                </div>
-              </div>
-              <div class="form-group">
-                <label for="register-token">Class Rep Token (Optional)</label>
-                <div class="input-wrapper">
-                  <span class="input-icon">🔑</span>
-                  <input type="text" id="register-token" placeholder="Enter single-use token" />
-                </div>
-              </div>
-              <button type="submit" class="btn btn-primary">Create Account</button>
-            </form>
-          </section>
-        </main>
+            </div>
+            <button type="submit"
+              class="w-full py-3 bg-pro-blue-600 hover:bg-pro-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-pro-blue-500/30 transition-all hover:-translate-y-0.5 text-sm mt-1">
+              Create Account →
+            </button>
+          </form>
+        </section>
       </div>
     </div>
+  </div>
 
-    <!-- MAIN APPLICATION SCREEN -->
-    <div class="app-layout hidden" id="app-screen">
-      <!-- Left Glassmorphism Sidebar -->
-      <aside class="sidebar">
-        <div class="brand">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/e/ea/Wappen_University_of_Sierra_Leone.png" alt="IPAM USL Logo" class="brand-logo" />
-          <div class="brand-details">
-            <span class="brand-name">IPAM Connect</span>
-            <span class="brand-sub">University of SL</span>
+  <!-- ════════════════════════════════════════════════════════════════
+       MAIN APPLICATION SCREEN
+  ═════════════════════════════════════════════════════════════════ -->
+  <div id="app-screen" class="hidden">
+
+    <!-- ── Admin Announcement Bar ─────────────────────────────────── -->
+    <div id="announcement-bar" role="banner" aria-label="Platform Announcement">
+      <span class="ann-icon" aria-hidden="true">📢</span>
+      <p id="announcement-text">Welcome to IPAM Connect. Stay engaged with your academic community.</p>
+      <input id="announcement-input" type="text" placeholder="Edit announcement…" class="hidden" />
+      <button id="announcement-save" class="hidden">Save</button>
+    </div>
+
+    <!-- Mobile drawer toggle -->
+    <button id="mobile-menu-btn" aria-label="Open channel menu" onclick="toggleDrawer()">☰</button>
+
+    <!-- ── 4-Column Discord-Style Shell ───────────────────────────── -->
+    <div class="app-shell">
+
+      <!-- ╔══════════════════════════════╗
+           ║  COL 1: Department Icon Rail  ║
+           ╚══════════════════════════════╝ -->
+      <nav class="dept-rail" id="dept-rail" aria-label="Department Navigator">
+        <!-- Home/All icon -->
+        <button class="rail-icon active" data-view="chat" id="rail-home" onclick="railSelect(this, 'chat')" title="Home">
+          🏠
+          <span class="rail-icon-tooltip">Home</span>
+        </button>
+
+        <div class="rail-separator"></div>
+
+        <!-- Department buttons injected dynamically by app.js -->
+        <button class="rail-icon" data-view="directory" onclick="railSelect(this, 'directory')" title="Directory">
+          👥
+          <span class="rail-icon-tooltip">Student Directory</span>
+        </button>
+        <button class="rail-icon" data-view="resources" onclick="railSelect(this, 'resources')" title="Resources">
+          📚
+          <span class="rail-icon-tooltip">Academic Resources</span>
+        </button>
+
+        <div class="rail-separator"></div>
+
+        <!-- Admin icon (hidden for students — revealed by security.js) -->
+        <button class="rail-icon hidden" data-view="admin" data-required-role="admin" id="admin-tab" onclick="railSelect(this, 'admin')" title="Admin Control">
+          ⚙️
+          <span class="rail-icon-tooltip">Admin Control</span>
+        </button>
+      </nav>
+
+      <!-- ╔══════════════════════════════╗
+           ║  COL 2: Channel / Level Pane  ║
+           ╚══════════════════════════════╝ -->
+      <div class="nav-pane" id="nav-pane">
+        <div class="nav-pane-header">
+          <div class="nav-pane-title" id="nav-pane-title">IPAM Connect</div>
+          <div class="nav-pane-sub" id="nav-pane-sub">Select a channel below</div>
+        </div>
+
+        <div class="nav-pane-body" id="nav-pane-body">
+          <!-- Channels for chat view (dynamically populated by channelEngine) -->
+          <div id="channel-list-container">
+            <div class="nav-section-label">📢 Text Channels</div>
+            <!-- Dynamic channels from Firestore /channels OR fallback static channels -->
+            <button class="channel-item active" data-channel-id="general" onclick="selectChannel(this, 'general', 'General Chat', 'text')">
+              <span class="ch-hash">#</span>
+              general-chat
+            </button>
+            <button class="channel-item" data-channel-id="announcements" onclick="selectChannel(this, 'announcements', 'Announcements', 'text')">
+              <span class="ch-hash">📣</span>
+              announcements
+            </button>
+            <button class="channel-item" data-channel-id="resources-share" onclick="selectChannel(this, 'resources-share', 'Resource Sharing', 'forum')">
+              <span class="ch-hash">📂</span>
+              resource-sharing
+            </button>
+            <button class="channel-item" data-channel-id="study-group" onclick="selectChannel(this, 'study-group', 'Study Groups', 'text')">
+              <span class="ch-hash">#</span>
+              study-groups
+            </button>
+
+            <div class="nav-section-label mt-3">🎓 Academic Year</div>
+            <button class="channel-item" data-channel-id="year1" onclick="selectChannel(this, 'year1', 'Year 1 Hub', 'text')">
+              <span class="ch-hash">1️⃣</span>
+              year-1-hub
+            </button>
+            <button class="channel-item" data-channel-id="year2" onclick="selectChannel(this, 'year2', 'Year 2 Hub', 'text')">
+              <span class="ch-hash">2️⃣</span>
+              year-2-hub
+            </button>
+            <button class="channel-item" data-channel-id="year3" onclick="selectChannel(this, 'year3', 'Year 3 Hub', 'text')">
+              <span class="ch-hash">3️⃣</span>
+              year-3-hub
+            </button>
+            <button class="channel-item" data-channel-id="year4" onclick="selectChannel(this, 'year4', 'Year 4 Hub', 'text')">
+              <span class="ch-hash">4️⃣</span>
+              year-4-hub
+            </button>
+          </div>
+
+          <!-- Secondary views: Directory / Resources / Admin (nav pane adapts) -->
+          <div id="secondary-nav-container" class="hidden">
+            <!-- Content injected dynamically when switching views -->
           </div>
         </div>
 
-        <nav class="main-nav">
-          <button data-view="directory" class="nav-item active">
-            <span class="nav-icon">👥</span>
-            <span class="nav-label">Directory</span>
-          </button>
-          <button data-view="chat" class="nav-item">
-            <span class="nav-icon">💬</span>
-            <span class="nav-label">Messaging</span>
-          </button>
-          <button data-view="resources" class="nav-item">
-            <span class="nav-icon">📚</span>
-            <span class="nav-label">Resources</span>
-          </button>
-          <button data-view="admin" id="admin-tab" class="nav-item hidden">
-            <span class="nav-icon">⚙️</span>
-            <span class="nav-label">Admin Control</span>
-          </button>
-        </nav>
+        <!-- User Footer -->
+        <div class="nav-pane-footer">
+          <div class="nav-footer-avatar" id="nav-footer-avatar" aria-hidden="true">?</div>
+          <div class="nav-footer-info">
+            <div class="nav-footer-name" id="nav-footer-name">Loading…</div>
+            <div class="nav-footer-role" id="nav-footer-role"></div>
+          </div>
+          <button id="logout-btn-rail" title="Sign out" onclick="legacyLogout()" aria-label="Sign out">🚪</button>
+        </div>
+      </div>
 
-        <div class="sidebar-footer">
-          <button id="logout-button" class="btn btn-logout">
-            <span class="nav-icon">🚪</span>
-            <span class="nav-label">Log Out</span>
-          </button>
+      <!-- ╔══════════════════════════════╗
+           ║  COL 3: Chat Viewport         ║
+           ╚══════════════════════════════╝ -->
+      <main class="chat-viewport" id="chat-viewport" role="main">
+
+        <!-- Chat view (default) -->
+        <div id="view-chat" class="flex flex-col h-full overflow-hidden">
+          <!-- Header -->
+          <div class="chat-viewport-header">
+            <span class="viewport-ch-icon" id="vp-ch-icon" aria-hidden="true">#</span>
+            <span class="viewport-ch-name" id="vp-ch-name">general-chat</span>
+            <span class="viewport-ch-meta" id="vp-ch-meta">Real-time Firestore stream</span>
+            <div class="realtime-dot" id="realtime-indicator">Live</div>
+          </div>
+
+          <!-- Upload progress bar (hidden until upload starts) -->
+          <div id="upload-progress-wrap" class="hidden">
+            <div id="upload-progress-bar"></div>
+          </div>
+
+          <!-- Message Feed -->
+          <div id="message-feed" aria-live="polite" aria-label="Message feed">
+            <!-- Placeholder: shown until a channel is selected / messages load -->
+            <div class="feed-placeholder" id="feed-placeholder">
+              <span class="feed-placeholder-icon">💬</span>
+              <p>Select a channel from the left panel to start a conversation.</p>
+            </div>
+          </div>
+
+          <!-- Composer -->
+          <form id="chat-composer" aria-label="Compose message" onsubmit="return false;">
+            <label for="file-attach-input" id="attach-btn" title="Attach file" role="button" aria-label="Attach file">
+              📎
+            </label>
+            <input type="file" id="file-attach-input" accept=".pdf,.doc,.docx,.zip,.jpg,.jpeg,.png,.gif,.webp" class="hidden" aria-label="File attachment" />
+
+            <div class="flex flex-col flex-1 gap-1">
+              <!-- File preview pill -->
+              <div id="file-preview-bar" class="hidden">
+                <span>📄</span>
+                <span id="file-preview-name"></span>
+                <button type="button" onclick="clearFileAttach()" aria-label="Remove attachment">✕</button>
+              </div>
+              <textarea
+                id="chat-text-input"
+                placeholder="Message #general-chat"
+                rows="1"
+                aria-label="Message text"
+                onkeydown="composerKeyHandler(event)"
+              ></textarea>
+            </div>
+
+            <button type="submit" id="send-btn" aria-label="Send message" onclick="sendComposerMessage()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="2.5"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </form>
+        </div>
+
+        <!-- Directory View -->
+        <div id="view-directory" class="hidden p-6 overflow-y-auto h-full">
+          <div class="mb-6">
+            <h2 class="font-display text-2xl font-bold text-slate-800 mb-1">Student Directory</h2>
+            <p class="text-slate-500 text-sm">Browse and connect with peers across departments</p>
+          </div>
+          <div class="flex gap-3 mb-5 flex-wrap">
+            <select id="directory-department" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:border-pro-blue-500 cursor-pointer"></select>
+            <select id="directory-level"      class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:border-pro-blue-500 cursor-pointer"></select>
+            <button id="directory-search" onclick="legacyLoadDirectory()"
+              class="px-4 py-2 bg-pro-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-pro-blue-700 transition-all">
+              🔍 Filter
+            </button>
+          </div>
+          <div id="directory-results" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+          <!-- Hidden legacy compat elements -->
+          <select id="dir-dept-select" class="hidden"></select>
+          <select id="dir-level-select" class="hidden"></select>
+        </div>
+
+        <!-- Resources View -->
+        <div id="view-resources" class="hidden p-6 overflow-y-auto h-full">
+          <div class="mb-6">
+            <h2 class="font-display text-2xl font-bold text-slate-800 mb-1">Academic Repository</h2>
+            <p class="text-slate-500 text-sm">Upload and browse study materials, slides, and assignments</p>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
+            <!-- Upload form -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-card">
+              <h3 class="font-display text-lg font-bold text-slate-800 mb-4">Share Study Material</h3>
+              <form id="resource-form" class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1.5">
+                  <label for="resource-title" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Resource Title</label>
+                  <input id="resource-title" type="text" placeholder="e.g. Lecture 3: Matrices" required
+                    class="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-pro-blue-500 transition-all" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label for="resource-category" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Category</label>
+                  <select id="resource-category" required class="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-pro-blue-500 cursor-pointer">
+                    <option value="notes">📝 Notes</option>
+                    <option value="slides">📊 Slides</option>
+                    <option value="assignments">✏️ Assignments</option>
+                    <option value="projects">🛠 Projects</option>
+                  </select>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label for="resource-file" class="border-2 border-dashed border-slate-200 hover:border-pro-blue-400 hover:bg-blue-50/50 rounded-xl p-5 flex flex-col items-center text-center cursor-pointer transition-all text-slate-500 hover:text-pro-blue-600">
+                    <span class="text-3xl mb-2">📂</span>
+                    <span class="text-sm font-medium">Select file to upload</span>
+                    <span class="text-xs text-slate-400 mt-1">PDF, DOCX, Images, ZIP — max 50MB</span>
+                  </label>
+                  <input type="file" id="resource-file" required class="hidden" />
+                </div>
+                <button type="submit" class="w-full py-3 bg-pro-blue-600 hover:bg-pro-blue-700 text-white font-semibold rounded-xl text-sm transition-all hover:-translate-y-0.5 shadow-lg shadow-blue-500/20">
+                  ☁️ Upload to Cloud
+                </button>
+              </form>
+            </div>
+            <!-- Resource list -->
+            <div>
+              <h3 class="font-display text-lg font-bold text-slate-700 mb-3">Available Materials</h3>
+              <div id="resource-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin View -->
+        <div id="view-admin" class="hidden p-6 overflow-y-auto h-full" aria-label="Admin Control Center">
+          <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+            <div>
+              <h2 class="font-display text-2xl font-bold text-slate-800 mb-1">Admin Control Center</h2>
+              <p class="text-slate-500 text-sm">Manage tokens, moderate content, and oversee platform activity</p>
+            </div>
+            <div class="flex gap-2">
+              <a href="admin.html" target="_blank"
+                class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20 hover:-translate-y-0.5 no-underline">
+                👑 Admin Console
+              </a>
+              <button id="refresh-admin" onclick="legacyLoadAdmin()"
+                class="px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-all">
+                🔄 Sync
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Token generation -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-card">
+              <h3 class="font-display text-lg font-bold text-slate-800 mb-1">Generate Class Rep Token</h3>
+              <p class="text-slate-400 text-xs mb-4">Issue single-use registration keys for class representatives</p>
+              <form id="token-form" class="flex flex-col gap-3">
+                <select id="token-department" required
+                  class="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-pro-blue-500 cursor-pointer"></select>
+                <select id="token-level" required
+                  class="px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-pro-blue-500 cursor-pointer"></select>
+                <button type="submit"
+                  class="py-2.5 bg-pro-blue-600 hover:bg-pro-blue-700 text-white font-semibold rounded-xl text-sm transition-all">
+                  🔑 Generate Token
+                </button>
+              </form>
+            </div>
+
+            <!-- Issued tokens log -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-card">
+              <h3 class="font-display text-lg font-bold text-slate-800 mb-1">Quick Token Creator</h3>
+              <p class="text-slate-400 text-xs mb-4">Direct utility — mirrors the form above</p>
+              <div class="flex gap-3 items-end flex-wrap">
+                <div class="flex-1 flex flex-col gap-2 min-w-0">
+                  <select id="token-dept" class="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-pro-blue-500 cursor-pointer">
+                    <option value="BSc Information Technology">BSc Information Technology</option>
+                    <option value="BSc Computer Science">BSc Computer Science</option>
+                  </select>
+                  <button onclick="generateOneTimeToken()"
+                    class="py-2 bg-slate-700 hover:bg-slate-800 text-white font-semibold rounded-xl text-sm transition-all">
+                    Generate Code
+                  </button>
+                </div>
+                <div class="flex flex-col gap-1 w-40">
+                  <label class="text-xs text-slate-400 font-semibold uppercase">Generated</label>
+                  <input id="tokenDisplayBox" readonly placeholder="TKN-XXXXXXXX"
+                    class="px-3 py-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm font-mono font-bold text-pro-blue-600 text-center outline-none" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Tokens table -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-card md:col-span-2">
+              <h3 class="font-display text-lg font-bold text-slate-800 mb-3">Issued Security Tokens Log</h3>
+              <div class="overflow-x-auto rounded-xl border border-slate-100">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="bg-slate-50">
+                      <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Token Code</th>
+                      <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Department</th>
+                      <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Level</th>
+                      <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tokenTableBody" class="divide-y divide-slate-100">
+                    <!-- Rendered by app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Moderator console -->
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-card md:col-span-2">
+              <h3 class="font-display text-lg font-bold text-slate-800 mb-1">Moderator Operations Console</h3>
+              <p class="text-slate-400 text-xs mb-3">Soft-deletions, audit events, and account reviews</p>
+              <div id="admin-console" class="bg-slate-50 rounded-xl border border-slate-100 p-4 max-h-64 overflow-y-auto flex flex-col gap-2 text-sm text-slate-500">
+                <!-- Rendered by app.js -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- ╔══════════════════════════════╗
+           ║  COL 4: Active Members Pane   ║
+           ╚══════════════════════════════╝ -->
+      <aside class="members-pane" aria-label="Online Members">
+        <div class="members-pane-header">🟢 Online Members</div>
+        <div class="members-list" id="members-list">
+          <!-- Populated by updateMembersPane() after auth -->
         </div>
       </aside>
 
-      <!-- Right Main Workspace Container -->
-      <main class="workspace">
-        <header class="topbar">
-          <div class="workspace-meta">
-            <h1 id="workspace-title">Student Directory</h1>
-            <p id="user-role-label" class="user-role-tag">Loading profile...</p>
-          </div>
-          
-          <div class="topbar-actions">
-            <!-- Decorative Search to mimic mockup -->
-            <div class="search-bar">
-              <span class="search-icon">🔍</span>
-              <input type="text" placeholder="Search files, channels, peers..." disabled />
-            </div>
+    </div><!-- /.app-shell -->
+  </div><!-- /#app-screen -->
 
-            <!-- Dashboard Notifications Mock -->
-            <div class="action-badge-btn">
-              <span class="icon-span">💬</span>
-              <span class="counter-badge">2</span>
-            </div>
-            <div class="action-badge-btn">
-              <span class="icon-span">🔔</span>
-              <span class="counter-badge">6</span>
-            </div>
+  <!-- ── Toast Notification ─────────────────────────────────────── -->
+  <div id="toast" class="hidden" role="status" aria-live="polite"></div>
 
-            <!-- Profile Avatar Mock -->
-            <div class="user-profile-avatar">
-              <span class="avatar-placeholder">🎓</span>
-            </div>
-          </div>
-        </header>
+  <!-- ════════════════════════════════════════════════════════════════
+       UI CONTROLLER (Inline) — View-switching & composer glue
+  ═════════════════════════════════════════════════════════════════ -->
+  <script>
+    // ── Auth Tab Switching ────────────────────────────────────────
+    function authTab(tab) {
+      const isLogin = tab === 'login';
+      document.getElementById('panel-login').classList.toggle('hidden', !isLogin);
+      document.getElementById('panel-register').classList.toggle('hidden', isLogin);
+      document.getElementById('tab-login').classList.toggle('bg-white', isLogin);
+      document.getElementById('tab-login').classList.toggle('text-pro-blue-600', isLogin);
+      document.getElementById('tab-login').classList.toggle('shadow-sm', isLogin);
+      document.getElementById('tab-login').classList.toggle('text-slate-500', !isLogin);
+      document.getElementById('tab-register').classList.toggle('bg-white', !isLogin);
+      document.getElementById('tab-register').classList.toggle('text-pro-blue-600', !isLogin);
+      document.getElementById('tab-register').classList.toggle('shadow-sm', !isLogin);
+      document.getElementById('tab-register').classList.toggle('text-slate-500', isLogin);
+    }
 
-        <!-- Dynamic Panels Section -->
-        <div class="workspace-content">
-          
-          <!-- DIRECTORY VIEW -->
-          <section id="directory" class="view-panel active">
-            <div class="panel-card-header">
-              <div class="header-details">
-                <h2>Browse Student Directory</h2>
-                <p>Connect with peers across departments, years, and levels</p>
-              </div>
-              
-              <div class="filters-panel">
-                <div class="filter-group">
-                  <label for="directory-department">Department</label>
-                  <select id="directory-department"></select>
-                </div>
-                <div class="filter-group">
-                  <label for="directory-level">Level</label>
-                  <select id="directory-level"></select>
-                </div>
-
-                <!-- Hidden/compat elements required by app.js (mirroring mechanism) -->
-                <select id="dir-dept-select" style="display:none;">
-                  <option value="">All</option>
-                  <option value="BSc IT">BSc IT</option>
-                  <option value="BSc Financial Services">BSc Financial Services</option>
-                </select>
-                <select id="dir-level-select" style="display:none;">
-                  <option value="">All</option>
-                  <option value="Year 1">Year 1</option>
-                  <option value="Year 2">Year 2</option>
-                </select>
-
-                <button id="directory-search" class="btn btn-primary">
-                  <span>🔍</span> Filter
-                </button>
-              </div>
-            </div>
-            
-            <div id="directory-results" class="results-grid">
-              <!-- Rendered Dynamically by app.js -->
-            </div>
-          </section>
-
-          <!-- CHAT VIEW -->
-          <section id="chat" class="view-panel">
-            <div class="panel-card-header">
-              <div class="header-details">
-                <h2>Class & Direct Chat</h2>
-                <p>Native real-time communications powered by Firestore listeners</p>
-              </div>
-            </div>
-
-            <!-- 3-Pane Messaging Dashboard -->
-            <div class="chat-dashboard">
-              <!-- Left Panel: Channels & Chats list -->
-              <aside class="chat-sidebar">
-                <div class="chat-sidebar-header">
-                  <div class="mini-pill-tabs">
-                    <button class="pill active">All</button>
-                    <button class="pill">Classes</button>
-                    <button class="pill">Directs</button>
-                  </div>
-                </div>
-                <div id="chatThreadsContainer" class="thread-list">
-                  <div class="thread-item active" data-channel="general">
-                    <div class="thread-icon">🏫</div>
-                    <div class="thread-info">
-                      <h4>General Channel</h4>
-                      <p>Active Firestore room</p>
-                    </div>
-                  </div>
-                  <div class="thread-item" data-channel="bot">
-                    <div class="thread-icon">🤖</div>
-                    <div class="thread-info">
-                      <h4>Study AI Bot</h4>
-                      <p>Get instant academic assistance</p>
-                    </div>
-                  </div>
-                  <div class="thread-item" data-channel="it-group">
-                    <div class="thread-icon">💻</div>
-                    <div class="thread-info">
-                      <h4>BSc IT Year 2 Group</h4>
-                      <p>Mock classmates stream</p>
-                    </div>
-                  </div>
-                  <div class="thread-item" data-channel="support">
-                    <div class="thread-icon">🛠️</div>
-                    <div class="thread-info">
-                      <h4>Support Desk</h4>
-                      <p>Mock administrative support</p>
-                    </div>
-                  </div>
-                </div>
-              </aside>
-
-              <!-- Middle Panel: Message feed / snippet log -->
-              <section class="chat-feed-panel">
-                <div class="feed-container">
-                  <div class="feed-header">
-                    <h3>Conversation Log</h3>
-                    <span class="status-indicator">● Realtime</span>
-                  </div>
-                  <div id="chatMessageStream" class="message-feed-list">
-                    <!-- Standard message display wrapper -->
-                    <div id="chat-messages" class="messages-wrap"></div>
-                  </div>
-                </div>
-              </section>
-
-              <!-- Right Panel: Focus Active Chat Window -->
-              <section class="chat-window-panel">
-                <div class="active-window-container">
-                  <header id="active-chat-header" class="active-chat-header">
-                    <div class="active-user-meta">
-                      <div class="active-avatar">💬</div>
-                      <div>
-                        <h3>Workspace Main Stream</h3>
-                        <p class="subtitle">Secure end-to-end messaging</p>
-                      </div>
-                    </div>
-                  </header>
-
-                  <div id="chatMessageStreamActive" class="active-messages-feed">
-                    <!-- Leaves for app rendering or custom css layouts -->
-                    <div class="chat-placeholder-graphic">
-                      <span class="graphic-icon">💬</span>
-                      <p>Select a class channel or direct message thread from the lists to start discussing.</p>
-                    </div>
-                  </div>
-
-                  <!-- Chat Action Footer -->
-                  <form id="chat-form" class="chat-composer-form">
-                    <label class="attachment-trigger" for="chat-attachment" title="Attach study material">
-                      📎
-                    </label>
-                    <input type="file" id="chat-attachment" />
-
-                    <input type="text" id="chat-text" placeholder="Type your message here..." required />
-
-                    <!-- Compat inputs for redesign hooks in app.js -->
-                    <input type="text" id="msgInputText" style="display:none;" />
-                    <input type="file" id="msgFileInput" style="display:none;" />
-
-                    <button type="button" id="sendMsgAction" class="btn btn-send-message">
-                      Send
-                    </button>
-                  </form>
-                </div>
-              </section>
-            </div>
-          </section>
-
-          <!-- RESOURCES VIEW -->
-          <section id="resources" class="view-panel">
-            <div class="panel-card-header">
-              <div class="header-details">
-                <h2>Academic Repository</h2>
-                <p>Upload slides, notes, assignments, and search other student materials</p>
-              </div>
-            </div>
-
-            <div class="resources-layout">
-              <!-- Upload Form -->
-              <div class="upload-sidebar-card">
-                <h3>Share Study Material</h3>
-                <form id="resource-form" class="upload-form">
-                  <div class="form-group">
-                    <label for="resource-title">Resource Title</label>
-                    <input type="text" id="resource-title" placeholder="e.g. Lecture 3: Matrices" required />
-                  </div>
-                  <div class="form-group">
-                    <label for="resource-category">Category</label>
-                    <select id="resource-category" required>
-                      <option value="notes">Notes</option>
-                      <option value="slides">Slides</option>
-                      <option value="assignments">Assignments</option>
-                      <option value="projects">Projects</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="resource-file" class="custom-file-upload">
-                      <span class="file-icon">📂</span> Select File
-                    </label>
-                    <input type="file" id="resource-file" required />
-                  </div>
-                  <button type="submit" class="btn btn-primary btn-block">Upload to Cloud</button>
-                  <p class="form-warning">⚠️ Limit: 50MB per file. Only academic resources permitted.</p>
-                </form>
-              </div>
-
-              <!-- Shared File Log -->
-              <div class="resource-feed">
-                <h3>Available Class Materials</h3>
-                <div id="resource-list" class="resources-grid">
-                  <!-- Rendered Dynamically by app.js -->
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- ADMIN VIEW -->
-          <section id="admin" class="view-panel hidden">
-            <div class="panel-card-header">
-              <div class="header-details">
-                <h2>Admin Control Center</h2>
-                <p>Generate registration authorization keys and review platform actions</p>
-              </div>
-              <div style="display: flex; gap: 8px;">
-                <a href="admin.html" target="_blank" class="btn btn-primary" style="background: #10b981; border-color: #10b981; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);">
-                  👑 Open Admin Web Console
-                </a>
-                <button id="refresh-admin" class="btn btn-secondary">
-                  🔄 Sync Records
-                </button>
-              </div>
-            </div>
-
-            <div class="admin-grid-layout">
-              <!-- Token Management -->
-              <div class="admin-card">
-                <div class="admin-card-header">
-                  <h3>Generate Class Rep Code</h3>
-                  <p>Issue single-use tokens assigned to specific departments and years</p>
-                </div>
-                
-                <form id="token-form" class="admin-token-form">
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label for="token-department">Department</label>
-                      <select id="token-department" required></select>
-                    </div>
-                    <div class="form-group">
-                      <label for="token-level">Level</label>
-                      <select id="token-level" required></select>
-                    </div>
-                  </div>
-                  <button type="submit" class="btn btn-primary">Generate Authorization Token</button>
-                </form>
-              </div>
-
-              <!-- Compatibility Token Console Panel -->
-              <div class="admin-card">
-                <div class="admin-card-header">
-                  <h3>Direct Token Creator (Compat)</h3>
-                  <p>Utility dashboard mirroring generated keys</p>
-                </div>
-                
-                <div class="compat-token-content">
-                  <div class="compat-fields">
-                    <div class="form-group">
-                      <label for="token-dept">Assigned Dept</label>
-                      <select id="token-dept">
-                        <option value="BSc Information Technology">BSc Information Technology</option>
-                        <option value="BSc Computer Science">BSc Computer Science</option>
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label for="token-level">Assigned Level</label>
-                      <select id="token-level">
-                        <option value="Year 1">Year 1</option>
-                        <option value="Year 2">Year 2</option>
-                      </select>
-                    </div>
-                    <button class="btn btn-secondary" onclick="generateOneTimeToken()">Generate Code</button>
-                  </div>
-                  
-                  <div class="compat-display">
-                    <label>Generated Code</label>
-                    <input id="tokenDisplayBox" readonly placeholder="TKN-XXXXXXXX" />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Active Tokens Directory -->
-              <div class="admin-card span-2">
-                <div class="admin-card-header">
-                  <h3>Issued Security Tokens Log</h3>
-                  <p>View status of generated registration keys</p>
-                </div>
-                <div class="table-container">
-                  <table class="tokens-table">
-                    <thead>
-                      <tr>
-                        <th>Auth Token Code</th>
-                        <th>Assigned Department</th>
-                        <th>Target Academic Level</th>
-                      </tr>
-                    </thead>
-                    <tbody id="tokenTableBody">
-                      <!-- Rendered by app.js -->
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <!-- General Console Log -->
-              <div class="admin-card span-2">
-                <div class="admin-card-header">
-                  <h3>Moderator Operations console</h3>
-                  <p>Soft deletions, audit logs, and account reviews</p>
-                </div>
-                <div id="admin-console" class="admin-log-feed">
-                  <!-- Logs -->
-                </div>
-              </div>
-            </div>
-          </section>
-
-        </div>
-      </main>
-    </div>
-
-    <!-- TOAST POPUPS -->
-    <div id="toast" class="toast hidden"></div>
-
-    <!-- Inline view controller script for workspace title and cosmetic enhancements -->
-    <script>
-      // Automatically update the main workspace title on navigation clicks
-      document.addEventListener('DOMContentLoaded', () => {
-        const navButtons = document.querySelectorAll('.main-nav button');
-        const workspaceTitle = document.getElementById('workspace-title');
-        
-        const titleMap = {
-          'directory': 'Student Directory',
-          'chat': 'Class & Direct Chat',
-          'resources': 'Academic Repository',
-          'admin': 'Admin Control Center'
-        };
-
-        navButtons.forEach(btn => {
-          btn.addEventListener('click', () => {
-            const view = btn.dataset.view;
-            if (workspaceTitle && titleMap[view]) {
-              workspaceTitle.textContent = titleMap[view];
-            }
-          });
-        });
+    // ── View Switching ────────────────────────────────────────────
+    const VIEWS = ['chat', 'directory', 'resources', 'admin'];
+    function showView(viewId) {
+      VIEWS.forEach(v => {
+        const el = document.getElementById('view-' + v);
+        if (el) el.classList.toggle('hidden', v !== viewId);
       });
-    </script>
-    <script type="module" src="app.js"></script>
-  </body>
+
+      // Adapt nav pane label
+      const titleMap = {
+        chat:      'Channels',
+        directory: 'Directory',
+        resources: 'Resources',
+        admin:     'Admin Tools',
+      };
+      const paneTitle = document.getElementById('nav-pane-title');
+      if (paneTitle) paneTitle.textContent = titleMap[viewId] || 'IPAM Connect';
+
+      // Toggle channel list vs secondary nav
+      const chanList  = document.getElementById('channel-list-container');
+      const secNav    = document.getElementById('secondary-nav-container');
+      if (chanList)  chanList.classList.toggle('hidden',  viewId !== 'chat');
+      if (secNav)    secNav.classList.toggle('hidden',    viewId === 'chat');
+    }
+
+    function railSelect(btn, viewId) {
+      document.querySelectorAll('.rail-icon').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      showView(viewId);
+      // Close mobile drawer
+      document.getElementById('nav-pane')?.classList.remove('drawer-open');
+    }
+
+    // ── Mobile Drawer ─────────────────────────────────────────────
+    function toggleDrawer() {
+      document.getElementById('nav-pane')?.classList.toggle('drawer-open');
+    }
+
+    // ── Channel Selection ─────────────────────────────────────────
+    let _selectedChannelId   = 'general';
+    let _selectedChannelName = 'general-chat';
+
+    function selectChannel(btn, channelId, channelName, channelType) {
+      document.querySelectorAll('.channel-item').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _selectedChannelId   = channelId;
+      _selectedChannelName = channelName;
+
+      // Update viewport header
+      const vpName = document.getElementById('vp-ch-name');
+      const vpMeta = document.getElementById('vp-ch-meta');
+      const vpIcon = document.getElementById('vp-ch-icon');
+      const textarea = document.getElementById('chat-text-input');
+      if (vpName)   vpName.textContent = channelName;
+      if (vpMeta)   vpMeta.textContent = channelType === 'forum' ? 'Forum thread' : 'Live Firestore stream';
+      if (vpIcon)   vpIcon.textContent = channelType === 'forum' ? '📂' : '#';
+      if (textarea) textarea.placeholder = `Message #${channelName.toLowerCase().replace(/\s+/g, '-')}`;
+
+      // Delegate to chatEngine if available
+      if (window._chatEngine && typeof window._chatEngine.subscribeToChannel === 'function') {
+        const feedEl = document.getElementById('message-feed');
+        window._chatEngine.subscribeToChannel({ channelId, channelName, channelType }, feedEl);
+      }
+
+      // Close mobile drawer
+      document.getElementById('nav-pane')?.classList.remove('drawer-open');
+    }
+
+    // ── Composer: Enter to send, Shift+Enter for newline ─────────
+    function composerKeyHandler(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendComposerMessage();
+      }
+    }
+
+    // ── File Attach ───────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      const fileInput  = document.getElementById('file-attach-input');
+      const previewBar = document.getElementById('file-preview-bar');
+      const previewName = document.getElementById('file-preview-name');
+      if (fileInput) {
+        fileInput.addEventListener('change', () => {
+          const f = fileInput.files[0];
+          if (f) {
+            if (previewName) previewName.textContent = f.name;
+            if (previewBar)  previewBar.classList.remove('hidden');
+          }
+        });
+      }
+
+      // Auto-resize textarea
+      const ta = document.getElementById('chat-text-input');
+      if (ta) {
+        ta.addEventListener('input', () => {
+          ta.style.height = 'auto';
+          ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+        });
+      }
+    });
+
+    function clearFileAttach() {
+      const fi = document.getElementById('file-attach-input');
+      const pb = document.getElementById('file-preview-bar');
+      if (fi) fi.value = '';
+      if (pb) pb.classList.add('hidden');
+    }
+
+    // ── Send from composer (bridges to chatEngine or legacy app.js) ──
+    async function sendComposerMessage() {
+      const textarea  = document.getElementById('chat-text-input');
+      const fileInput = document.getElementById('file-attach-input');
+      const sendBtn   = document.getElementById('send-btn');
+      const text = textarea ? textarea.value.trim() : '';
+      const file = fileInput ? fileInput.files[0] : null;
+
+      if (!text && !file) { showToast('Please type a message or attach a file.'); return; }
+
+      sendBtn.disabled = true;
+
+      try {
+        if (window._chatEngine && typeof window._chatEngine.sendMessage === 'function') {
+          // Route through chatEngine (new modules)
+          await window._chatEngine.sendMessage({ text, file });
+        } else {
+          // Fallback: mirror into legacy chat-text + form submit
+          const legacyText = document.getElementById('chat-text');
+          if (legacyText) legacyText.value = text;
+          const legacyAttach = document.getElementById('chat-attachment');
+          if (legacyAttach && file) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            legacyAttach.files = dt.files;
+          }
+          const legacyForm = document.getElementById('chat-form');
+          if (legacyForm) {
+            const evt = new Event('submit', { bubbles: true, cancelable: true });
+            legacyForm.dispatchEvent(evt);
+          }
+        }
+        if (textarea) { textarea.value = ''; textarea.style.height = 'auto'; }
+        clearFileAttach();
+      } catch (err) {
+        showToast(err.message || 'Failed to send message.');
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    // ── Announcement Bar Save ─────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      const saveBtn = document.getElementById('announcement-save');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+          const input = document.getElementById('announcement-input');
+          const text  = document.getElementById('announcement-text');
+          if (input && text && input.value.trim()) {
+            text.textContent = input.value.trim();
+            showToast('Announcement updated.');
+          }
+        });
+      }
+    });
+
+    // ── Toast ──────────────────────────────────────────────────────
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      if (!t) return;
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => t.classList.add('hidden'), 3200);
+    }
+    // Expose globally for legacy app.js compatibility
+    window.showToast = showToast;
+
+    // ── App screen show/hide helper ───────────────────────────────
+    function showApp()  {
+      document.getElementById('auth-screen').classList.add('hidden');
+      const app = document.getElementById('app-screen');
+      app.classList.remove('hidden');
+      app.classList.add('visible');
+    }
+    function showAuth() {
+      document.getElementById('app-screen').classList.remove('visible');
+      document.getElementById('app-screen').classList.add('hidden');
+      document.getElementById('auth-screen').classList.remove('hidden');
+    }
+    window.showApp  = showApp;
+    window.showAuth = showAuth;
+
+    // ── Legacy bridge functions (called by app.js internals) ──────
+    function legacyLogout() {
+      const btn = document.getElementById('logout-button');
+      if (btn) btn.click();
+    }
+    function legacyLoadDirectory() {
+      const btn = document.getElementById('directory-search');
+      if (btn) btn.dispatchEvent(new MouseEvent('click'));
+    }
+    function legacyLoadAdmin() {
+      const btn = document.getElementById('refresh-admin');
+      if (btn) btn.dispatchEvent(new MouseEvent('click'));
+    }
+
+    // ── Members Pane Updater ──────────────────────────────────────
+    function updateMembersPane(users) {
+      const list = document.getElementById('members-list');
+      if (!list || !users) return;
+      const roleIcon = { admin: '⚙️', class_rep: '⭐', student: '🎓' };
+      list.innerHTML = users.slice(0, 20).map(u => `
+        <div class="member-item">
+          <div class="member-avatar">
+            ${(u.fullName || '?').charAt(0)}
+            <span class="member-status-dot online"></span>
+          </div>
+          <div class="member-info">
+            <div class="member-name">${u.fullName || 'Unknown'}</div>
+            <div class="member-role">${roleIcon[u.role] || '🎓'} ${u.role || 'student'}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+    window.updateMembersPane = updateMembersPane;
+
+    // ── Nav footer updater (called after profile load) ────────────
+    function updateNavFooter(user) {
+      const avatar = document.getElementById('nav-footer-avatar');
+      const name   = document.getElementById('nav-footer-name');
+      const role   = document.getElementById('nav-footer-role');
+      if (avatar && user?.fullName) avatar.textContent = user.fullName.charAt(0).toUpperCase();
+      if (name   && user?.fullName) name.textContent = user.fullName;
+      if (role   && user?.role)     role.textContent  = user.role;
+    }
+    window.updateNavFooter = updateNavFooter;
+
+    // ── Upload progress listener ──────────────────────────────────
+    function setUploadProgress(pct) {
+      const wrap = document.getElementById('upload-progress-wrap');
+      const bar  = document.getElementById('upload-progress-bar');
+      if (!wrap || !bar) return;
+      if (pct <= 0 || pct >= 100) {
+        wrap.classList.add('hidden');
+        bar.style.width = '0%';
+      } else {
+        wrap.classList.remove('hidden');
+        bar.style.width = pct + '%';
+      }
+    }
+    window.setUploadProgress = setUploadProgress;
+  </script>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       LEGACY COMPAT SHIM — bridges new layout to existing app.js
+       (keeps all existing Firestore logic, auth, and data working)
+  ═════════════════════════════════════════════════════════════════ -->
+  <script>
+    // Override app.js's showToast (already exposed above as window.showToast)
+    // Override app.js's auth screen switch  (app.js calls dom.authScreen / dom.appScreen directly)
+    // We intercept onAuthStateChanged side-effects by monitoring classList mutations.
+    const _appScreenObserver = new MutationObserver(() => {
+      const app = document.getElementById('app-screen');
+      if (app && !app.classList.contains('hidden') && !app.classList.contains('visible')) {
+        app.classList.add('visible');
+      }
+    });
+    document.addEventListener('DOMContentLoaded', () => {
+      const app = document.getElementById('app-screen');
+      if (app) _appScreenObserver.observe(app, { attributes: true, attributeFilter: ['class'] });
+    });
+  </script>
+
+  <!-- ── Existing app.js (all original Firebase logic preserved) ── -->
+  <script type="module" src="app.js"></script>
+
+  <!-- ── chatEngine (new — exposed via window._chatEngine) ── -->
+  <script type="module">
+    import * as CE from './chatEngine.js';
+    import { renderRoleUI, sweepMessageFeed } from './security.js';
+
+    // Expose engine for inline handlers
+    window._chatEngine = CE;
+
+    // Register upload progress bridge
+    CE.onUploadProgress(pct => {
+      if (typeof window.setUploadProgress === 'function') window.setUploadProgress(pct);
+    });
+
+    // After each message renders, let security.js evaluate it
+    CE.onMessage(({ el }) => {
+      // security.js already registered via its own CE.onMessage() call at import time
+    });
+
+    // Bootstrap: once Firebase auth resolves user, prime chatEngine subscription
+    // and run RBAC renderer.
+    // We poll for _currentUser since onAuthStateChanged is internal to chatEngine.
+    const _rbacBootstrap = setInterval(() => {
+      const user = CE.currentUser;
+      if (user) {
+        clearInterval(_rbacBootstrap);
+
+        // Update nav footer
+        if (typeof window.updateNavFooter === 'function') window.updateNavFooter(user);
+
+        // Apply RBAC UI transformations
+        const roleEl = document.getElementById('nav-footer-role');
+        renderRoleUI(roleEl);
+
+        // Subscribe to default channel (general)
+        const feedEl = document.getElementById('message-feed');
+        const placeholder = document.getElementById('feed-placeholder');
+        if (placeholder) placeholder.remove();
+        CE.subscribeToChannel(
+          { channelId: 'general', channelName: 'General Chat', channelType: 'text' },
+          feedEl
+        );
+
+        // Sweep existing messages in feed after short delay
+        setTimeout(() => sweepMessageFeed(feedEl), 800);
+      }
+    }, 600);
+  </script>
+
+</body>
 </html>

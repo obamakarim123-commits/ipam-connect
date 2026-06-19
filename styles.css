@@ -1401,3 +1401,153 @@ select {
     grid-column: span 1;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CHATENGINE + SECURITY.JS SUPPLEMENTARY STYLES
+   Styles for new message cards, RBAC controls, and Discord layout
+   additions that augment (not replace) the existing design system.
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Announcement Bar (additional states) ────────────────────────── */
+.announcement-bar--admin { cursor: default; }
+.announcement-bar--admin #announcement-text { display: none; }
+.announcement-bar--admin #announcement-input,
+.announcement-bar--admin #announcement-save { display: flex !important; }
+
+/* ── Role Badge system (security.js renders these) ───────────────── */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+.badge--admin   { background: #fef3c7; color: #92400e; }
+.badge--rep     { background: #ede9fe; color: #5b21b6; }
+.badge--student { background: #dbeafe; color: #1e40af; }
+.user-display-name {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+/* ── Message Cards (chatEngine renders these) ────────────────────── */
+.msg-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  transition: background 0.15s;
+  position: relative;
+}
+.msg-card:hover { background: rgba(0,0,0,0.025); }
+.msg-card--deleted {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+}
+
+.msg-sender-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.msg-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c4a882, #8b6f47);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+.msg-sender-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+}
+.msg-time {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  margin-left: 2px;
+}
+
+.msg-body { padding-left: 40px; }
+.msg-text {
+  font-size: 0.88rem;
+  color: #1e293b;
+  line-height: 1.5;
+  background: #f1f5f9;
+  padding: 8px 12px;
+  border-radius: 0 10px 10px 10px;
+  display: inline-block;
+  max-width: 90%;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.msg-deleted-notice {
+  font-style: italic;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.msg-attachment { margin-top: 6px; }
+.msg-attachment-img {
+  max-width: min(320px, 80%);
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  display: block;
+  cursor: zoom-in;
+}
+.msg-attachment-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.msg-attachment-link:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+/* ── RBAC Delete Button ───────────────────────────────────────────── */
+.msg-actions {
+  padding-left: 40px;
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+.rbac-delete-btn {
+  display: none; /* shown on card hover via JS, or via security.js */
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #ef4444;
+  background: rgba(239,68,68,0.06);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.msg-card:hover .rbac-delete-btn { display: inline-flex; }
+.rbac-delete-btn:hover {
+  background: #ef4444;
+  color: #fff;
+  border-color: #ef4444;
+}
+.rbac-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+

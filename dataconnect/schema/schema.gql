@@ -1,0 +1,44 @@
+type User @table {
+  displayName: String!
+  email: String!
+  academicStatus: String!
+  department: String!
+  bio: String
+  researchInterests: String
+  profileImageUrl: String
+}
+
+type Community @table {
+  name: String!
+  description: String!
+  creator: User!
+}
+
+type Post @table {
+  title: String!
+  content: String!
+  author: User!
+  community: Community!
+  attachmentUrl: String
+}
+
+type Membership @table {
+  user: User!
+  community: Community!
+  joinedAt: Timestamp!
+}
+
+type Message @table {
+  sender: User!
+  receiver: User!
+  content: String!
+  timestamp: Timestamp!
+}
+
+type Project @table {
+  title: String!
+  description: String!
+  owner: User!
+  status: String
+  requiredSkills: String
+}
