@@ -24,8 +24,8 @@ exports.redeemClassRepCode = onCall(async (request) => {
 
   if (!codeDoc.exists || !codeDoc.data().isValid) {
     throw new HttpsError(
-      "invalid-argument",
-      "This code is invalid or has already been used."
+        "invalid-argument",
+        "This code is invalid or has already been used.",
     );
   }
 
