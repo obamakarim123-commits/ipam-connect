@@ -112,7 +112,7 @@ const ADMIN_ROLES     = new Set(['admin']);
 
 /** @returns {string} Current user role or 'student' as safe default */
 function _role() {
-  return ChatEngine.currentUser?.role || 'student';
+  return (ChatEngine.getCurrentUser?.() || {}).role || 'student';
 }
 
 /** @returns {boolean} */
@@ -196,6 +196,10 @@ function _onMessageRendered({ el }) {
   if (!isDeleted && msgId) {
     _injectDeleteBtn(msgId, actionsDiv);
   }
+
+  // Show pin buttons for moderators
+  const pinBtn = el.querySelector('.rbac-pin-btn');
+  if (pinBtn) pinBtn.style.display = 'inline-flex';
 }
 
 // Register with the engine
@@ -272,7 +276,7 @@ function _gateNavigation() {
  */
 function _renderRoleBadge(targetEl) {
   if (!targetEl) return;
-  const user = ChatEngine.currentUser;
+  const user = ChatEngine.getCurrentUser?.() || null;
   if (!user) return;
 
   const roleLabels = {
@@ -335,6 +339,12 @@ function sweepMessageFeed(feedEl) {
     } else {
       // Remove any stale buttons if role downgraded (e.g. logout → login as student)
       actionsDiv.querySelectorAll('.rbac-delete-btn').forEach(b => b.remove());
+    }
+
+    // Show/hide pin buttons
+    const pinBtn = card.querySelector('.rbac-pin-btn');
+    if (pinBtn) {
+      pinBtn.style.display = isModerator() ? 'inline-flex' : 'none';
     }
   });
 }

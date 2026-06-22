@@ -97,13 +97,26 @@ Once logged in as an admin:
 
 ```
 ipam-connect/
-├── index.html              # Main HTML entry point
+├── index.html              # Main HTML entry point (Discord-style 4-column UI)
 ├── app.js                  # Core application logic & Firebase integration
-├── styles.css              # Responsive dark theme styling
-├── firebase-config.js      # Firebase configuration (update with your values)
+├── chatEngine.js           # Real-time messaging engine (channel subscriptions, uploads)
+├── security.js             # RBAC guardian (role-based delete, pin controls)
+├── admin.html              # Standalone Admin Console SPA
+├── styles.css              # Glassmorphism design system + chat/message styles
+├── firebase-config.js      # Firebase configuration
+├── firebase-messaging-sw.js# FCM service worker for push notifications
+├── find_admin_temp.js      # Utility script to query admin accounts
+├── ipam_connect_about.txt  # Platform overview document
+├── ipam_connect_prd.pdf    # Product Requirements Document
 ├── package.json            # Dependencies & scripts
-├── README.md               # This file
-└── .gitignore              # Excludes node_modules and secrets
+├── .firebaserc             # Firebase project binding
+├── firebase.json           # Firebase hosting/functions config
+├── functions/              # Cloud Functions (token redemption, FCM notifications)
+│   └── index.js
+├── dataconnect/            # Firebase Data Connect (PostgreSQL schema — future use)
+│   └── schema/schema.gql
+├── assets/                 # Static assets (logos, images)
+└── .gitignore
 ```
 
 ## Key PRD Requirements Implemented
@@ -111,26 +124,35 @@ ipam-connect/
 ### Epic 1: Identity & Profile Management ✅
 - Secure registration with email authentication
 - Single-use token validation for Class Representatives
+- Department/level token match enforcement
 - Pre-defined dropdowns for departments and levels
 - Searchable student directory
+- **Edit profile** (name, department, level)
 
 ### Epic 2: Structured Real-Time Communication ✅
-- Direct peer-to-peer messaging
-- Class-specific group chat channels
-- File attachments (up to 50MB)
+- Direct peer-to-peer messaging with sender names
+- Dynamic class-specific group chat channels (auto-created per department/level)
+- File attachments (up to 50MB) with MIME validation
 - Reactive Firestore listeners for instant delivery
+- **Real-time online presence** (Firestore presence tracking)
+- **Typing indicators** (live per-channel)
+- **Channel subscription management** (subscribe/unsubscribe per channel)
+- **Class Rep channel creation** (create custom channels)
 
 ### Epic 3: Academic Repository ✅
 - High-velocity resource uploads
 - Metadata taxonomy (category, course, timestamp)
-- Zero-latency client-side search
-- 50MB upload limit with optimization warnings
+- **Full-text search** (filter by title, category, uploader)
+- 50MB upload limit with optimization warnings (>40MB)
 
 ### Epic 4: Distributed Moderation ✅
 - Soft-delete messages (mark `isDeleted: true`)
-- Role-based moderation capabilities
+- Role-based moderation capabilities (RBAC guardian)
 - Admin token management
 - Resource take-down by Class Reps
+- **Pin/unpin announcements** (Class Reps & Admins)
+- **Real-time moderation dashboard** (admin live message stream)
+- **Admin Console** (standalone SPA for user/role/token/resource management)
 
 ## Development Notes
 
@@ -242,10 +264,11 @@ service cloud.firestore {
 ## Future Roadmap
 
 🔄 **Post-MVP Features**
-- Real-time typing indicators
+- ~~Real-time typing indicators~~
+- ~~Push notifications (FCM)~~
+- ~~Real-time online presence~~
 - Video/audio conferencing via WebRTC
 - Automated university registrar integration
-- Push notifications
 - Custom desktop client
 - Advanced search with Algolia
 - Analytics dashboard

@@ -1,4 +1,5 @@
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const {getFirestore} = require("firebase-admin/firestore");
 const admin = require("firebase-admin");
 
@@ -6,6 +7,66 @@ const admin = require("firebase-admin");
 if (admin.apps.length === 0) {
   admin.initializeApp();
 }
+
+/**
+ * Sends FCM push notification when a new message is created.
+ */
+exports.sendMessageNotification = onDocumentCreated(
+    "messages/{messageId}", async (event) => {
+      const message = event.data.data();
+      if (!message || message.senderId === undefined) return;
+
+      const db = getFirestore();
+      const senderSnap = await db.collection("users")
+          .doc(message.senderId).get();
+      const senderName = senderSnap.exists ?
+      senderSnap.data().fullName || "Someone" : "Someone";
+
+      // Fetch all users' FCM tokens (excluding the sender)
+      const usersSnap = await db.collection("users").get();
+      const tokens = [];
+      usersSnap.forEach((doc) => {
+        const data = doc.data();
+        if (data.fcmToken && doc.id !== message.senderId) {
+          tokens.push(data.fcmToken);
+        }
+      });
+
+      if (tokens.length === 0) return;
+
+      const payload = {
+        notification: {
+          title: senderName,
+          body: message.text ?
+          message.text.substring(0, 100) :
+          "Sent an attachment",
+        },
+        tokens,
+      };
+
+      try {
+        const response = await admin.messaging()
+            .sendEachForMulticast(payload);
+        if (response.failureCount > 0) {
+          const batch = db.batch();
+          response.responses.forEach((resp, idx) => {
+            if (!resp.success &&
+              resp.error.code === "messaging/invalid-registration-token") {
+              const userQuery = db.collection("users")
+                  .where("fcmToken", "==", tokens[idx]);
+              userQuery.get().then((snap) => {
+                snap.forEach((userDoc) => {
+                  batch.update(userDoc.ref, {fcmToken: null});
+                });
+                batch.commit();
+              });
+            }
+          });
+        }
+      } catch (e) {
+        console.error("FCM send failed:", e.message);
+      }
+    });
 
 exports.redeemClassRepCode = onCall(async (request) => {
   const db = getFirestore();

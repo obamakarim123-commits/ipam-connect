@@ -19,6 +19,7 @@ import {
   orderBy,
   addDoc,
   updateDoc,
+  deleteDoc,
   serverTimestamp,
   onSnapshot
 } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js';
@@ -34,12 +35,14 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+let _currentUserRole = 'student';
+
 const departments = [
   'BSc Information Technology',
-  'BSc Computer Science',
-  'BSc Software Engineering',
-  'BSc Cyber Security',
-  'BSc Data Science'
+  'BSc Business Administration',
+  'BSc Financial Accounting',
+  'BSc Public Sector Management',
+  'BSc Sustainable Development'
 ];
 
 const levels = ['Year 1', 'Year 2', 'Year 3', 'Year 4'];
@@ -130,10 +133,16 @@ function populateSelectElements() {
 
   // If redesign compatibility selects exist, mirror values
   if (dom.dirDeptSelect) {
-    dom.dirDeptSelect.innerHTML = '<option value="">All</option>' + ['BSc IT','BSc Financial Services'].map(d=>`<option value="${d}">${d}</option>`).join('');
+    dom.dirDeptSelect.innerHTML = '<option value="">All</option>' + departments.map(d=>`<option value="${d}">${d}</option>`).join('');
   }
   if (dom.dirLevelSelect) {
-    dom.dirLevelSelect.innerHTML = '<option value="">All</option>' + ['Year 1','Year 2'].map(l=>`<option value="${l}">${l}</option>`).join('');
+    dom.dirLevelSelect.innerHTML = '<option value="">All</option>' + levels.map(l=>`<option value="${l}">${l}</option>`).join('');
+  }
+  if (dom.tokenDeptCompat) {
+    dom.tokenDeptCompat.innerHTML = departments.map(d=>`<option value="${d}">${d}</option>`).join('');
+  }
+  if (dom.tokenLevelCompat) {
+    dom.tokenLevelCompat.innerHTML = levels.map(l=>`<option value="${l}">${l}</option>`).join('');
   }
 }
 
@@ -166,6 +175,7 @@ async function createUserProfile(user, profileData, tokenCode) {
     department: profileData.department,
     level: profileData.level,
     role,
+    photoURL: '',
     createdAt: serverTimestamp()
   };
 
@@ -176,13 +186,20 @@ async function createUserProfile(user, profileData, tokenCode) {
     const tokenSnapshot = await getDoc(tokenDoc);
     if (tokenSnapshot.exists()) {
       const tokenData = tokenSnapshot.data();
-      if (!tokenData.isConsumed) {
-        await updateDoc(tokenDoc, {
-          isConsumed: true,
-          consumedBy: user.uid,
-          invalidatedAt: serverTimestamp()
-        });
+      if (tokenData.isConsumed) {
+        throw new Error('This token has already been used.');
       }
+      if (tokenData.assignedDepartment && tokenData.assignedDepartment !== profileData.department) {
+        throw new Error(`This token is for ${tokenData.assignedDepartment}, not ${profileData.department}.`);
+      }
+      if (tokenData.assignedLevel && tokenData.assignedLevel !== profileData.level) {
+        throw new Error(`This token is for ${tokenData.assignedLevel}, not ${profileData.level}.`);
+      }
+      await updateDoc(tokenDoc, {
+        isConsumed: true,
+        consumedBy: user.uid,
+        invalidatedAt: serverTimestamp()
+      });
     }
   }
 }
@@ -266,6 +283,8 @@ async function loadDirectory() {
   }
 }
 
+let _cachedResources = [];
+
 async function loadResources() {
   dom.resourceList.innerHTML = '<p>Loading shared materials...</p>';
   const staticAboutCard = `
@@ -280,24 +299,49 @@ async function loadResources() {
   `;
   try {
     const snapshot = await getDocs(query(collection(db, 'resources'), orderBy('createdAt', 'desc')));
-    let itemsHtml = staticAboutCard;
-    if (!snapshot.empty) {
-      itemsHtml += snapshot.docs.map((docSnapshot) => {
-        const item = docSnapshot.data();
-        return `
-          <div class="card">
-            <h3>${item.title}</h3>
-            <p>Category: ${item.category}</p>
-            <p>Uploaded by: ${item.ownerName || 'Unknown'}</p>
-            <a href="${item.fileUrl}" target="_blank" rel="noopener noreferrer">Download</a>
-          </div>
-        `;
-      }).join('');
-    }
-    dom.resourceList.innerHTML = itemsHtml;
+    _cachedResources = snapshot.docs.map((docSnapshot) => {
+      return { id: docSnapshot.id, ...docSnapshot.data() };
+    });
+    dom.resourceList.innerHTML = staticAboutCard + renderResourcesHtml(_cachedResources);
   } catch (error) {
     dom.resourceList.innerHTML = staticAboutCard + '<p style="padding: 12px 0; color: var(--danger);">Error loading other resources.</p>';
   }
+}
+
+function renderResourcesHtml(items) {
+  if (!items.length) return '<p style="padding: 12px 0; color: var(--muted);">No resources match your search.</p>';
+  return items.map((item) => {
+    const sizeLabel = item.fileSize ? ` (${(item.fileSize / 1024 / 1024).toFixed(1)}MB)` : '';
+    const currentRole = _currentUserRole || 'student';
+    const canDelete = currentRole === 'class_rep' || currentRole === 'admin';
+    const deleteBtn = canDelete
+      ? `<button class="resource-delete-btn" data-resource-id="${item.id}" style="margin-top:8px; padding:4px 10px; font-size:0.75rem; font-weight:600; color:#ef4444; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.2); border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;" title="Delete this resource">🗑️ Delete</button>`
+      : '';
+    return `
+      <div class="card" data-resource-id="${item.id}">
+        <h3>${item.title}</h3>
+        <p>Category: ${item.category}</p>
+        <p>Uploaded by: ${item.ownerName || 'Unknown'}${sizeLabel}</p>
+        <a href="${item.fileUrl}" target="_blank" rel="noopener noreferrer">Download</a>
+        ${deleteBtn}
+      </div>
+    `;
+  }).join('');
+}
+
+function filterResources() {
+  const query = (document.getElementById('resource-search')?.value || '').toLowerCase().trim();
+  if (!query) {
+    const staticAboutCard = document.querySelector('#resource-list .card:first-child');
+    dom.resourceList.innerHTML = (staticAboutCard ? staticAboutCard.outerHTML : '') + renderResourcesHtml(_cachedResources);
+    return;
+  }
+  const filtered = _cachedResources.filter((item) => {
+    return (item.title && item.title.toLowerCase().includes(query)) ||
+           (item.category && item.category.toLowerCase().includes(query)) ||
+           (item.ownerName && item.ownerName.toLowerCase().includes(query));
+  });
+  dom.resourceList.innerHTML = renderResourcesHtml(filtered);
 }
 
 // State and Data for local demo chat channels
@@ -478,8 +522,13 @@ async function sendMessageHandler(event) {
       attachmentType = attachment.type;
     }
 
+    const senderSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+    const senderData = senderSnap.exists() ? senderSnap.data() : {};
     await addDoc(collection(db, 'messages'), {
+      channelId: 'general',
       senderId: auth.currentUser.uid,
+      senderName: senderData.fullName || 'Unknown',
+      senderPhotoURL: senderData.photoURL || '',
       text: text || 'Sent an attachment',
       attachmentUrl,
       attachmentType,
@@ -508,6 +557,10 @@ async function uploadResourceHandler(event) {
   if (file.size > 50 * 1024 * 1024) {
     showToast('File exceeds the 50MB upload limit.');
     return;
+  }
+  if (file.size > 40 * 1024 * 1024) {
+    const proceed = confirm(`File is ${(file.size / 1024 / 1024).toFixed(1)}MB — close to the 50MB limit. Large files may fail or take long. Upload anyway?`);
+    if (!proceed) return;
   }
 
   try {
@@ -720,7 +773,8 @@ async function renderUserEnvironment(user) {
   try {
     const userSnapshot = await getDoc(doc(db, 'users', user.uid));
     const userData = userSnapshot.exists() ? userSnapshot.data() : null;
-    dom.userRoleLabel.textContent = userData ? `${userData.fullName} • ${userData.role || 'student'}` : 'Loading profile...';
+    _currentUserRole = userData?.role || 'student';
+    dom.userRoleLabel.textContent = userData ? `${userData.fullName} • ${_currentUserRole}` : 'Loading profile...';
 
     // ── New Discord-layout bridges ───────────────────────────────
     if (typeof window.updateNavFooter === 'function' && userData) {
@@ -734,12 +788,15 @@ async function renderUserEnvironment(user) {
       const adminRailBtn = document.getElementById('admin-tab');
       if (adminRailBtn) adminRailBtn.classList.remove('hidden');
       loadAdminConsole();
+      subscribeAdminModeration();
     } else {
       dom.adminTab.classList.add('hidden');
       dom.adminSection.classList.add('hidden');
     }
     loadDirectory();
     loadResources();
+    initDynamicChannels(userData);
+    ensureStandardChannels(userData);
 
     // Populate the members pane with directory snapshot
     try {
@@ -753,6 +810,89 @@ async function renderUserEnvironment(user) {
   } catch (error) {
     showToast('Unable to load user profile.');
   }
+}
+
+// ── Push Notifications (FCM) ───────────────────────────────────
+async function setupPushNotifications(user) {
+  try {
+    // Dynamically import messaging SDK
+    const { getMessaging, getToken, onMessage } = await import('https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging.js');
+    const messaging = getMessaging(app);
+
+    // Request permission
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+
+    // Get FCM token (add your VAPID key from Firebase Console > Cloud Messaging)
+    const currentToken = await getToken(messaging);
+
+    if (currentToken) {
+      // Store token in user document
+      await updateDoc(doc(db, 'users', user.uid), {
+        fcmToken: currentToken,
+        fcmTokenUpdatedAt: serverTimestamp()
+      });
+    }
+
+    // Listen for foreground messages
+    onMessage(messaging, (payload) => {
+      if (payload.notification) {
+        showToast(`${payload.notification.title}: ${payload.notification.body}`);
+      }
+    });
+  } catch (e) {
+    // FCM setup failed — non-critical
+  }
+}
+
+// ── Presence Tracking ──────────────────────────────────────────
+let _presenceUnsub = null;
+
+async function setupPresence(user) {
+  // Set online status
+  const presenceRef = doc(db, 'presence', user.uid);
+  await setDoc(presenceRef, { status: 'online', lastSeen: serverTimestamp(), displayName: '' });
+
+  // Set onDisconnect to mark offline (Firebase v9 doesn't support client-side onDisconnect)
+  // Presence is now handled via local client-side timestamp updates only
+
+  // Get display name for presence
+  const userSnap = await getDoc(doc(db, 'users', user.uid));
+  if (userSnap.exists()) {
+    await setDoc(presenceRef, {
+      displayName: userSnap.data().fullName || '',
+      photoURL: userSnap.data().photoURL || ''
+    }, { merge: true });
+  }
+
+  // Subscribe to presence changes to update members pane
+  if (_presenceUnsub) _presenceUnsub();
+  _presenceUnsub = onSnapshot(collection(db, 'presence'), (snapshot) => {
+    const onlineUsers = snapshot.docs
+      .map(d => ({ uid: d.id, ...d.data() }))
+      .filter(u => u.status === 'online');
+    const memberList = document.getElementById('members-list');
+    if (memberList) {
+      memberList.innerHTML = onlineUsers.map(u => {
+        const initial = (u.displayName || '?').charAt(0).toUpperCase();
+        const avatarHtml = u.photoURL
+          ? `<img src="${u.photoURL}" alt="" class="member-avatar-img">`
+          : initial;
+        return `
+          <div class="member-item">
+            <div class="member-avatar">
+              ${avatarHtml}
+              <span class="member-status-dot online"></span>
+            </div>
+            <div class="member-info">
+              <div class="member-name">${u.displayName || 'Unknown'}</div>
+              <div class="member-role">🟢 Online</div>
+            </div>
+          </div>
+        `;
+      }).join('') || '<div class="p-4 text-sm text-slate-400 text-center">No users online</div>';
+    }
+  });
 }
 
 async function loadAdminConsole() {
@@ -782,19 +922,26 @@ onAuthStateChanged(auth, async (user) => {
     await renderUserEnvironment(user);
     subscribeToMessages();
     renderChannelContent();
+    setupPresence(user);
+    setupPushNotifications(user);
   } else {
     dom.appScreen.classList.add('hidden');
     dom.authScreen.classList.remove('hidden');
+    if (_presenceUnsub) _presenceUnsub();
   }
 });
 
 dom.authTabs.forEach((button) => button.addEventListener('click', toggleAuthTab));
 dom.registerForm.addEventListener('submit', registerHandler);
 dom.loginForm.addEventListener('submit', loginHandler);
-dom.logoutButton.addEventListener('click', logoutHandler);
+if (dom.logoutButton) dom.logoutButton.addEventListener('click', logoutHandler);
 dom.directorySearch.addEventListener('click', loadDirectory);
-dom.chatForm.addEventListener('submit', sendMessageHandler);
+if (dom.chatForm) dom.chatForm.addEventListener('submit', sendMessageHandler);
 dom.resourceForm.addEventListener('submit', uploadResourceHandler);
+const resourceSearchInput = document.getElementById('resource-search');
+if (resourceSearchInput) {
+  resourceSearchInput.addEventListener('input', filterResources);
+}
 dom.tokenForm.addEventListener('submit', createTokenHandler);
 dom.refreshAdmin.addEventListener('click', loadAdminConsole);
 dom.navButtons.forEach((button) => {
@@ -815,4 +962,248 @@ if (dom.chatThreadsContainer) {
   });
 }
 
-populateSelectElements();
+// Dynamic channel initialization based on user department/level
+async function initDynamicChannels(userData) {
+  if (!userData || !userData.department) return;
+  const channelListContainer = document.getElementById('channel-list-container');
+  if (!channelListContainer) return;
+
+  // Define standard channels for this department/level
+  const standardChannels = [
+    { id: 'general', name: 'General Chat', type: 'text', icon: '#' },
+    { id: 'announcements', name: 'Announcements', type: 'text', icon: '📣' },
+    { id: 'resource-sharing', name: 'Resource Sharing', type: 'forum', icon: '📂' },
+    { id: 'study-groups', name: 'Study Groups', type: 'text', icon: '#' },
+  ];
+
+  // Add department-specific channel
+  const deptKey = userData.department.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+  const deptChannelId = `dept-${deptKey}`;
+  const deptChannel = { id: deptChannelId, name: `${userData.department}`, type: 'text', icon: '🏛️' };
+
+  // Add level-specific channel
+  const levelKey = userData.level.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+  const levelChannelId = `level-${levelKey}`;
+  const levelChannel = { id: levelChannelId, name: `${userData.level} Hub`, type: 'text', icon: '🎓' };
+
+  const allChannels = [...standardChannels, deptChannel, levelChannel];
+
+  // Fetch custom channels from Firestore (created by class reps)
+  try {
+    const channelsQuery = query(
+      collection(db, 'channels'),
+      where('department', '==', userData.department),
+      where('level', '==', userData.level)
+    );
+    const snapshot = await getDocs(channelsQuery);
+    snapshot.forEach(docSnapshot => {
+      const ch = docSnapshot.data();
+      allChannels.push({
+        id: docSnapshot.id,
+        name: ch.channelName || docSnapshot.id,
+        type: ch.channelType || 'text',
+        icon: ch.icon || '#',
+      });
+    });
+  } catch (e) {
+    // Firestore query might fail if composite index not created; silently fall through
+  }
+
+  // Rebuild the channel list HTML
+  let html = `<div class="nav-section-label">📢 Text Channels</div>`;
+  allChannels.forEach(ch => {
+    const isActive = ch.id === 'general' ? 'active' : '';
+    html += `
+      <button class="channel-item ${isActive}" data-channel-id="${ch.id}" onclick="selectChannel(this, '${ch.id}', '${ch.name.replace(/'/g, "\\'")}', '${ch.type}')">
+        <span class="ch-hash">${ch.icon}</span>
+        ${ch.name.toLowerCase().replace(/\s+/g, '-')}
+      </button>
+    `;
+  });
+
+  channelListContainer.innerHTML = html;
+}
+
+// Auto-create standard channels in Firestore for a department/level (called on first visit)
+async function ensureStandardChannels(userData) {
+  if (!userData || !userData.department || !userData.level) return;
+  try {
+    const q = query(
+      collection(db, 'channels'),
+      where('department', '==', userData.department),
+      where('level', '==', userData.level)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      // Create standard department channels
+      const stdChannels = [
+        { channelName: 'General', channelType: 'text', icon: '#' },
+        { channelName: 'Announcements', channelType: 'text', icon: '📣' },
+        { channelName: 'Resource Sharing', channelType: 'forum', icon: '📂' },
+        { channelName: 'Study Groups', channelType: 'text', icon: '#' },
+      ];
+      for (const ch of stdChannels) {
+        const chId = `${userData.department.replace(/[^a-zA-Z0-9]/g,'-')}-${ch.channelName.replace(/\s+/g,'-').toLowerCase()}`;
+        const existingDoc = await getDoc(doc(db, 'channels', chId));
+        if (!existingDoc.exists()) {
+          await setDoc(doc(db, 'channels', chId), {
+            channelName: ch.channelName,
+            channelType: ch.channelType,
+            icon: ch.icon,
+            department: userData.department,
+            level: userData.level,
+            createdBy: 'system',
+            createdAt: serverTimestamp()
+          });
+        }
+      }
+    }
+  } catch (e) {
+    // Silently fail — channels may already exist
+  }
+}
+
+// Admin moderation dashboard (real-time)
+let _adminModUnsub = null;
+function subscribeAdminModeration() {
+  const msgContainer = document.getElementById('admin-mod-messages');
+  const resContainer = document.getElementById('admin-mod-resources');
+  if (!msgContainer && !resContainer) return;
+
+  // Unsubscribe previous listener
+  if (typeof _adminModUnsub === 'function') _adminModUnsub();
+
+  // Subscribe to all messages (moderation view)
+  _adminModUnsub = onSnapshot(
+    query(collection(db, 'messages'), orderBy('timestamp', 'desc')),
+    (snapshot) => {
+      if (!msgContainer) return;
+      const docs = snapshot.docs.slice(0, 50);
+      msgContainer.innerHTML = docs.map(docSnapshot => {
+        const m = docSnapshot.data();
+        const docId = docSnapshot.id;
+        const time = m.timestamp && m.timestamp.seconds != null
+          ? new Date(m.timestamp.seconds * 1000).toLocaleString()
+          : '...';
+        const statusLabel = m.isDeleted
+          ? '<span style="color:#ef4444;font-weight:600;">Deleted</span>'
+          : '<span style="color:#10b981;font-weight:600;">Active</span>';
+        const actions = m.isDeleted ? '' : `
+          <button class="admin-mod-softdel" data-id="${docId}" style="padding:2px 8px;font-size:0.7rem;border-radius:4px;border:1px solid #f59e0b;background:rgba(245,158,11,0.06);color:#92400e;cursor:pointer;font-weight:600;">Soft Delete</button>
+        `;
+        const hardDel = `
+          <button class="admin-mod-harddel" data-id="${docId}" style="padding:2px 8px;font-size:0.7rem;border-radius:4px;border:1px solid #ef4444;background:rgba(239,68,68,0.06);color:#dc2626;cursor:pointer;font-weight:600;">🗑️</button>
+        `;
+        return `
+          <div style="padding:8px 12px;display:flex;align-items:center;gap:8px;">
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem;" title="${m.text || '(attachment)'}">
+              <strong>${m.senderName || m.senderId?.slice(0,8) || 'System'}:</strong> ${m.text || '(attachment)'}
+            </span>
+            <span style="font-size:0.7rem;color:#94a3b8;flex-shrink:0;">${time}</span>
+            <span style="flex-shrink:0;">${statusLabel}</span>
+            <span style="flex-shrink:0;display:flex;gap:4px;">${actions}${hardDel}</span>
+          </div>
+        `;
+      }).join('') || '<p class="p-4 text-slate-400 text-center">No messages yet.</p>';
+    }
+  );
+
+  // Subscribe to resources
+  onSnapshot(
+    query(collection(db, 'resources'), orderBy('createdAt', 'desc')),
+    (snapshot) => {
+      if (!resContainer) return;
+      const docs = snapshot.docs.slice(0, 50);
+      resContainer.innerHTML = docs.map(docSnapshot => {
+        const r = docSnapshot.data();
+        const docId = docSnapshot.id;
+        return `
+          <div style="padding:8px 12px;display:flex;align-items:center;gap:8px;">
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem;">
+              <strong>${r.title}</strong> <span style="color:#94a3b8;">(${r.category})</span> — ${r.ownerName || 'Unknown'}
+            </span>
+            <button class="admin-mod-resdel" data-id="${docId}" style="padding:2px 8px;font-size:0.7rem;border-radius:4px;border:1px solid #ef4444;background:rgba(239,68,68,0.06);color:#dc2626;cursor:pointer;font-weight:600;flex-shrink:0;">🗑️</button>
+          </div>
+        `;
+      }).join('') || '<p class="p-4 text-slate-400 text-center">No resources yet.</p>';
+    }
+  );
+}
+
+// Event delegation for admin moderation
+document.addEventListener('click', async (e) => {
+  const softDelBtn = e.target.closest('.admin-mod-softdel');
+  if (softDelBtn) {
+    const id = softDelBtn.dataset.id;
+    try {
+      await updateDoc(doc(db, 'messages', id), { isDeleted: true });
+      showToast('Message soft-deleted.');
+    } catch (err) { showToast('Soft delete failed.'); }
+    return;
+  }
+  const hardDelBtn = e.target.closest('.admin-mod-harddel');
+  if (hardDelBtn) {
+    const id = hardDelBtn.dataset.id;
+    if (!confirm('Permanently delete this message from Firestore?')) return;
+    try {
+      await deleteDoc(doc(db, 'messages', id));
+      showToast('Message permanently deleted.');
+    } catch (err) { showToast('Delete failed.'); }
+    return;
+  }
+  const resDelBtn = e.target.closest('.admin-mod-resdel');
+  if (resDelBtn) {
+    const id = resDelBtn.dataset.id;
+    if (!confirm('Permanently delete this resource?')) return;
+    try {
+      await deleteDoc(doc(db, 'resources', id));
+      showToast('Resource deleted.');
+    } catch (err) { showToast('Delete failed.'); }
+  }
+});
+
+// Listen for channel refresh events (from class rep channel creation)
+window.addEventListener('refresh-channels', (e) => {
+  const userData = e.detail;
+  if (userData) initDynamicChannels(userData);
+});
+
+// Event delegation for resource delete buttons
+document.addEventListener('click', async (e) => {
+  const deleteBtn = e.target.closest('.resource-delete-btn');
+  if (!deleteBtn) return;
+  const resourceId = deleteBtn.dataset.resourceId;
+  if (!resourceId) return;
+  if (!confirm('Permanently delete this resource for all users?')) return;
+  try {
+    await deleteDoc(doc(db, 'resources', resourceId));
+    showToast('Resource deleted.');
+    loadResources();
+  } catch (err) {
+    showToast('Failed to delete resource.');
+  }
+});
+
+// Initialize dropdowns with error handling
+function initDropdowns() {
+  console.log('[initDropdowns] Running...');
+  const deptEl = document.getElementById('register-department');
+  const levelEl = document.getElementById('register-level');
+  console.log('[initDropdowns] Department element:', deptEl);
+  console.log('[initDropdowns] Level element:', levelEl);
+  try {
+    populateSelectElements();
+    console.log('[initDropdowns] Success');
+  } catch (err) {
+    console.error('[initDropdowns] Failed:', err);
+  }
+}
+
+// Call on DOMContentLoaded as backup
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDropdowns);
+  console.log('[app.js] Waiting for DOMContentLoaded');
+} else {
+  console.log('[app.js] DOM already ready, calling initDropdowns');
+  initDropdowns();
+}

@@ -110,10 +110,11 @@ function _buildMessageEl(snapshot, currentUserRole) {
 
   // ── Wrapper ──────────────────────────────────
   const article = document.createElement('article');
-  article.className = 'msg-card' + (msg.isDeleted ? ' msg-card--deleted' : '');
+  article.className = 'msg-card' + (msg.isDeleted ? ' msg-card--deleted' : '') + (msg.isPinned ? ' msg-card--pinned' : '');
   article.dataset.msgId     = msgId;
   article.dataset.senderId  = msg.senderId || '';
   article.dataset.isDeleted = msg.isDeleted ? 'true' : 'false';
+  article.dataset.isPinned  = msg.isPinned ? 'true' : 'false';
 
   // ── Timestamp — guard against transient null (optimistic write lag) ───
   let timeStr = '…';
@@ -127,10 +128,12 @@ function _buildMessageEl(snapshot, currentUserRole) {
   // ── Sender row ───────────────────────────────
   const senderRow = document.createElement('div');
   senderRow.className = 'msg-sender-row';
+  const pinBadge = msg.isPinned ? '<span style="font-size:0.7rem;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:4px;">📌 Pinned</span>' : '';
   senderRow.innerHTML = `
-    <span class="msg-avatar" aria-hidden="true">${sanitize(msg.senderName?.charAt(0) || '?')}</span>
+    <span class="msg-avatar" aria-hidden="true">${msg.senderPhotoURL ? `<img src="${sanitize(msg.senderPhotoURL)}" alt="" class="msg-avatar-img">` : sanitize(msg.senderName?.charAt(0) || '?')}</span>
     <span class="msg-sender-name">${sanitize(msg.senderName || 'Unknown')}</span>
     <time class="msg-time" datetime="${timeStr}">${timeStr}</time>
+    ${pinBadge}
   `;
 
   // ── Body ─────────────────────────────────────
@@ -187,12 +190,32 @@ function _buildMessageEl(snapshot, currentUserRole) {
   }
 
   // ── Moderator Action Row (data attributes signal security.js) ────────
-  // security.js scans for [data-delete-target] to inject or hide the button.
   const actions = document.createElement('div');
   actions.className = 'msg-actions';
   actions.dataset.deleteTarget = msgId;
   actions.dataset.senderUid    = msg.senderId || '';
-  // Actual button injection is handled by security.js::injectDeleteControls()
+  // Pin/unpin button for moderators (visible via security.js RBAC)
+  if (!msg.isDeleted) {
+    const pinBtn = document.createElement('button');
+    pinBtn.type = 'button';
+    pinBtn.className = 'rbac-pin-btn';
+    pinBtn.dataset.msgId = msgId;
+    pinBtn.dataset.isPinned = msg.isPinned ? 'true' : 'false';
+    pinBtn.setAttribute('aria-label', msg.isPinned ? 'Unpin message' : 'Pin message');
+    pinBtn.innerHTML = msg.isPinned ? '📌 Unpin' : '📌 Pin';
+    pinBtn.style.cssText = 'display:none;align-items:center;gap:4px;padding:3px 10px;font-size:0.72rem;font-weight:600;color:#92400e;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:6px;cursor:pointer;transition:all 0.2s;';
+    pinBtn.addEventListener('click', async () => {
+      pinBtn.disabled = true;
+      try {
+        await togglePinMessage(msgId, !msg.isPinned);
+      } catch (err) {
+        console.error('[chatEngine] pin toggle failed:', err);
+        pinBtn.disabled = false;
+      }
+    });
+    actions.appendChild(pinBtn);
+  }
+  // Actual delete button injection is handled by security.js::injectDeleteControls()
 
   article.appendChild(senderRow);
   article.appendChild(body);
@@ -241,13 +264,19 @@ function subscribeToChannel(channel, feedEl) {
 
       if (change.type === 'added') {
         const el = _buildMessageEl(change.doc, role);
-        feedEl.appendChild(el);
+        const isPinned = change.doc.data().isPinned === true;
+        if (isPinned) {
+          // Insert pinned messages at the top of the feed
+          feedEl.insertBefore(el, feedEl.firstChild);
+        } else {
+          feedEl.appendChild(el);
+        }
 
         // Signal security.js to evaluate and inject delete controls
         _callbacks.onMessage.forEach(cb => cb({ change, el, role }));
 
-        // Auto-scroll to bottom on new messages
-        feedEl.scrollTop = feedEl.scrollHeight;
+        // Auto-scroll to bottom on new non-pinned messages
+        if (!isPinned) feedEl.scrollTop = feedEl.scrollHeight;
 
       } else if (change.type === 'modified') {
         // Handle soft-delete update in place — find existing node and re-render
@@ -393,6 +422,20 @@ async function softDeleteMessage(messageId) {
   await updateDoc(ref, { isDeleted: true });
 }
 
+/**
+ * Toggles the pinned state of a message.
+ * Only class_rep and admin roles should call this.
+ *
+ * @param {string} messageId
+ * @param {boolean} isPinned
+ * @returns {Promise<void>}
+ */
+async function togglePinMessage(messageId, isPinned) {
+  if (!messageId) throw new Error('messageId is required.');
+  const ref = doc(_db, 'messages', messageId);
+  await updateDoc(ref, { isPinned });
+}
+
 // ─────────────────────────────────────────────
 // 9. Auth State Observer (internal bootstrap)
 // ─────────────────────────────────────────────
@@ -459,7 +502,69 @@ function onChannelChange(fn) { _callbacks.onChannelChange.push(fn); }
 function onUploadProgress(fn){ _callbacks.onUploadProgress.push(fn); }
 
 // ─────────────────────────────────────────────
-// 12. Public API Export
+// 12. Typing Indicators
+// ─────────────────────────────────────────────
+let _typingTimeout = null;
+
+/**
+ * Emits a typing event for the active channel.
+ * Creates/updates a document at /typing/{channelId}/{userId}
+ * with a server timestamp. Clears after 3s of inactivity.
+ */
+async function emitTyping() {
+  if (!_currentUser || !_activeChannel) return;
+  const typingRef = doc(_db, 'typing', _activeChannel.channelId, 'users', _currentUser.uid);
+  try {
+    await setDoc(typingRef, {
+      displayName: _currentUser.fullName,
+      lastTyped: serverTimestamp()
+    });
+    // Set onDisconnect to clean up if user disconnects
+    onDisconnect(typingRef).delete();
+  } catch (e) {
+    // Silently fail — typing indicator is non-critical
+  }
+
+  // Clear after 3s of inactivity
+  if (_typingTimeout) clearTimeout(_typingTimeout);
+  _typingTimeout = setTimeout(async () => {
+    try {
+      await deleteDoc(typingRef);
+    } catch (e) { /* ignore */ }
+  }, 3000);
+}
+
+/**
+ * Subscribes to typing indicators for the given channel.
+ * Calls the callback with an array of display names actively typing.
+ *
+ * @param {string} channelId
+ * @param {Function} callback — receives Array<string>
+ * @returns {Function} unsubscribe function
+ */
+function subscribeTyping(channelId, callback) {
+  const typingQuery = query(
+    collection(_db, 'typing', channelId, 'users'),
+    orderBy('lastTyped', 'desc')
+  );
+  return onSnapshot(typingQuery, (snapshot) => {
+    const now = Date.now();
+    const typers = snapshot.docs
+      .map(d => d.data())
+      .filter(t => t.lastTyped && (now - t.lastTyped.seconds * 1000) < 5000)
+      .map(t => t.displayName || 'Someone');
+    callback(typers);
+  }, () => callback([]));
+}
+
+/** Returns the currently subscribed channel or null. */
+function getActiveChannel() { return _activeChannel; }
+
+/** Returns the current authenticated user profile or null. */
+function getCurrentUser() { return _currentUser; }
+
+// ─────────────────────────────────────────────
+// 13. Public API Export
 // ─────────────────────────────────────────────
 export {
   // Core subscriptions
@@ -469,6 +574,7 @@ export {
   // Messaging
   sendMessage,
   softDeleteMessage,
+  togglePinMessage,
 
   // Data fetching
   fetchChannels,
@@ -481,7 +587,11 @@ export {
   // Utilities
   sanitize,
 
+  // Typing indicators
+  emitTyping,
+  subscribeTyping,
+
   // State accessors (read-only intent)
-  get activeChannel() { return _activeChannel; },
-  get currentUser()   { return _currentUser;   },
+  getActiveChannel,
+  getCurrentUser,
 };

@@ -1468,6 +1468,11 @@ select {
   flex-shrink: 0;
   text-transform: uppercase;
 }
+.msg-avatar-img {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
 .msg-sender-name {
   font-size: 0.82rem;
   font-weight: 600;
@@ -1550,4 +1555,10 @@ select {
   border-color: #ef4444;
 }
 .rbac-delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Pin Button (visible on hover for moderators) ──────────────────── */
+.msg-card .rbac-pin-btn { display: none; }
+.msg-card:hover .rbac-pin-btn { display: inline-flex; }
+.rbac-pin-btn:hover { background: rgba(245,158,11,0.15) !important; border-color: #f59e0b !important; }
+.rbac-pin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 

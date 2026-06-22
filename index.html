@@ -599,6 +599,8 @@
         flex-shrink: 0; position: relative;
         text-transform: uppercase;
       }
+      .member-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+      .nav-footer-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
       .member-status-dot {
         position: absolute; bottom: 0; right: 0;
         width: 9px; height: 9px;
@@ -895,42 +897,11 @@
         <div class="nav-pane-body" id="nav-pane-body">
           <!-- Channels for chat view (dynamically populated by channelEngine) -->
           <div id="channel-list-container">
-            <div class="nav-section-label">📢 Text Channels</div>
-            <!-- Dynamic channels from Firestore /channels OR fallback static channels -->
-            <button class="channel-item active" data-channel-id="general" onclick="selectChannel(this, 'general', 'General Chat', 'text')">
-              <span class="ch-hash">#</span>
-              general-chat
-            </button>
-            <button class="channel-item" data-channel-id="announcements" onclick="selectChannel(this, 'announcements', 'Announcements', 'text')">
-              <span class="ch-hash">📣</span>
-              announcements
-            </button>
-            <button class="channel-item" data-channel-id="resources-share" onclick="selectChannel(this, 'resources-share', 'Resource Sharing', 'forum')">
-              <span class="ch-hash">📂</span>
-              resource-sharing
-            </button>
-            <button class="channel-item" data-channel-id="study-group" onclick="selectChannel(this, 'study-group', 'Study Groups', 'text')">
-              <span class="ch-hash">#</span>
-              study-groups
-            </button>
-
-            <div class="nav-section-label mt-3">🎓 Academic Year</div>
-            <button class="channel-item" data-channel-id="year1" onclick="selectChannel(this, 'year1', 'Year 1 Hub', 'text')">
-              <span class="ch-hash">1️⃣</span>
-              year-1-hub
-            </button>
-            <button class="channel-item" data-channel-id="year2" onclick="selectChannel(this, 'year2', 'Year 2 Hub', 'text')">
-              <span class="ch-hash">2️⃣</span>
-              year-2-hub
-            </button>
-            <button class="channel-item" data-channel-id="year3" onclick="selectChannel(this, 'year3', 'Year 3 Hub', 'text')">
-              <span class="ch-hash">3️⃣</span>
-              year-3-hub
-            </button>
-            <button class="channel-item" data-channel-id="year4" onclick="selectChannel(this, 'year4', 'Year 4 Hub', 'text')">
-              <span class="ch-hash">4️⃣</span>
-              year-4-hub
-            </button>
+            <div class="nav-section-label" style="display:flex;justify-content:space-between;align-items:center;padding-right:16px;">
+              <span>📢 Text Channels</span>
+              <button id="create-channel-btn" class="hidden" onclick="showCreateChannel()" style="background:rgba(37,99,235,0.1);border:none;border-radius:6px;padding:2px 8px;font-size:0.75rem;font-weight:700;color:#2563eb;cursor:pointer;" title="Create new channel">+ New</button>
+            </div>
+            <!-- Dynamic channels rendered by app.js -->
           </div>
 
           <!-- Secondary views: Directory / Resources / Admin (nav pane adapts) -->
@@ -946,6 +917,7 @@
             <div class="nav-footer-name" id="nav-footer-name">Loading…</div>
             <div class="nav-footer-role" id="nav-footer-role"></div>
           </div>
+          <button id="edit-profile-btn" title="Edit Profile" onclick="showEditProfile()" aria-label="Edit Profile" style="background:transparent; border:none; cursor:pointer; padding:4px; border-radius:6px; color:#8b6f47; font-size:1rem; transition:color 0.15s, background 0.15s;">✏️</button>
           <button id="logout-btn-rail" title="Sign out" onclick="legacyLogout()" aria-label="Sign out">🚪</button>
         </div>
       </div>
@@ -963,6 +935,7 @@
             <span class="viewport-ch-name" id="vp-ch-name">general-chat</span>
             <span class="viewport-ch-meta" id="vp-ch-meta">Real-time Firestore stream</span>
             <div class="realtime-dot" id="realtime-indicator">Live</div>
+          <span id="typing-indicator" style="font-size:0.75rem;color:#64748b;font-style:italic;margin-left:8px;flex-shrink:0;"></span>
           </div>
 
           <!-- Upload progress bar (hidden until upload starts) -->
@@ -1073,7 +1046,10 @@
             </div>
             <!-- Resource list -->
             <div>
-              <h3 class="font-display text-lg font-bold text-slate-700 mb-3">Available Materials</h3>
+              <div class="flex items-center gap-3 mb-3 flex-wrap">
+                <h3 class="font-display text-lg font-bold text-slate-700">Available Materials</h3>
+                <input id="resource-search" type="text" placeholder="Search resources by title, category, or uploader..." class="flex-1 min-w-[200px] px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm outline-none focus:border-pro-blue-500 transition-all" />
+              </div>
               <div id="resource-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
             </div>
           </div>
@@ -1167,6 +1143,24 @@
               </div>
             </div>
           </div>
+
+          <!-- Real-time Moderation Dashboard (admin only) -->
+          <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-card">
+              <h3 class="font-display text-lg font-bold text-slate-800 mb-1">Live Message Stream</h3>
+              <p class="text-slate-400 text-xs mb-3">All channels — soft-delete or permanently remove messages</p>
+              <div id="admin-mod-messages" class="border border-slate-200 rounded-xl bg-slate-50 max-h-80 overflow-y-auto text-sm divide-y divide-slate-100">
+                <p class="p-4 text-slate-400 text-center">Loading message stream...</p>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-100 p-5 shadow-card">
+              <h3 class="font-display text-lg font-bold text-slate-800 mb-1">Resource Repository Overview</h3>
+              <p class="text-slate-400 text-xs mb-3">Track and remove uploaded academic materials</p>
+              <div id="admin-mod-resources" class="border border-slate-200 rounded-xl bg-slate-50 max-h-80 overflow-y-auto text-sm divide-y divide-slate-100">
+                <p class="p-4 text-slate-400 text-center">Loading resources...</p>
+              </div>
+            </div>
+          </div>
         </div>
 
       </main>
@@ -1183,6 +1177,66 @@
 
     </div><!-- /.app-shell -->
   </div><!-- /#app-screen -->
+
+  <!-- ── Create Channel Modal ──────────────────────────────────── -->
+  <div id="create-channel-modal" class="hidden" style="position:fixed; inset:0; z-index:9998; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; padding:24px;" onclick="if(event.target===this)closeCreateChannel()">
+    <div style="background:#fff; border-radius:16px; padding:28px; max-width:400px; width:100%; box-shadow:0 24px 64px rgba(0,0,0,0.2);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="font-family:'Outfit',sans-serif; font-size:1.25rem; font-weight:700; color:#1e293b;">Create Channel</h3>
+        <button onclick="closeCreateChannel()" style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:#94a3b8;">✕</button>
+      </div>
+      <form id="create-channel-form" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:#64748b;">Channel Name</label>
+          <input id="new-channel-name" type="text" placeholder="e.g. Project Alpha" required style="padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0; font-size:0.9rem; outline:none;" />
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:#64748b;">Channel Type</label>
+          <select id="new-channel-type" style="padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0; font-size:0.9rem; outline:none; cursor:pointer;">
+            <option value="text">💬 Text Channel</option>
+            <option value="forum">📂 Forum / Resource Share</option>
+            <option value="announcement">📣 Announcements</option>
+          </select>
+        </div>
+        <button type="submit" style="padding:10px; background:#2563eb; color:#fff; font-weight:600; border:none; border-radius:10px; cursor:pointer; font-size:0.9rem;">Create Channel</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Edit Profile Modal ─────────────────────────────────────── -->
+  <div id="edit-profile-modal" class="hidden" style="position:fixed; inset:0; z-index:9998; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; padding:24px;" onclick="if(event.target===this)closeEditProfile()">
+    <div style="background:#fff; border-radius:16px; padding:28px; max-width:440px; width:100%; box-shadow:0 24px 64px rgba(0,0,0,0.2);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="font-family:'Outfit',sans-serif; font-size:1.25rem; font-weight:700; color:#1e293b;">Edit Profile</h3>
+        <button onclick="closeEditProfile()" style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:#94a3b8;">✕</button>
+      </div>
+      <form id="edit-profile-form" style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+          <div id="edit-photo-preview" style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#60a5fa);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:#fff;overflow:hidden;flex-shrink:0;text-transform:uppercase;">?</div>
+          <input type="file" id="edit-photo-input" accept="image/*" style="font-size:0.8rem;max-width:200px;">
+          <button type="button" id="edit-photo-remove" style="display:none;font-size:0.75rem;color:#ef4444;background:none;border:none;cursor:pointer;">Remove photo</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <label style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:#64748b;">Full Name</label>
+          <input id="edit-name" type="text" required style="padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0; font-size:0.9rem; outline:none;" />
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <label style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:#64748b;">Department</label>
+            <select id="edit-department" style="padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0; font-size:0.9rem; outline:none; cursor:pointer;"></select>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <label style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:#64748b;">Level</label>
+            <select id="edit-level" style="padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0; font-size:0.9rem; outline:none; cursor:pointer;"></select>
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:4px;">
+          <button type="submit" style="flex:1; padding:10px; background:#2563eb; color:#fff; font-weight:600; border:none; border-radius:10px; cursor:pointer; font-size:0.9rem;">Save Changes</button>
+          <button type="button" onclick="closeEditProfile()" style="flex:1; padding:10px; background:#f1f5f9; color:#64748b; font-weight:500; border:none; border-radius:10px; cursor:pointer; font-size:0.9rem;">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- ── Toast Notification ─────────────────────────────────────── -->
   <div id="toast" class="hidden" role="status" aria-live="polite"></div>
@@ -1270,6 +1324,24 @@
         window._chatEngine.subscribeToChannel({ channelId, channelName, channelType }, feedEl);
       }
 
+      // Subscribe to typing indicators for this channel
+      if (window._chatEngine && typeof window._chatEngine.subscribeTyping === 'function') {
+        if (window._typingUnsub) window._typingUnsub();
+        window._typingUnsub = window._chatEngine.subscribeTyping(channelId, (typers) => {
+          const indicator = document.getElementById('typing-indicator');
+          if (!indicator) return;
+          if (typers.length === 0) {
+            indicator.textContent = '';
+          } else if (typers.length === 1) {
+            indicator.textContent = `${typers[0]} is typing...`;
+          } else if (typers.length <= 3) {
+            indicator.textContent = `${typers.join(', ')} are typing...`;
+          } else {
+            indicator.textContent = 'Several people are typing...';
+          }
+        });
+      }
+
       // Close mobile drawer
       document.getElementById('nav-pane')?.classList.remove('drawer-open');
     }
@@ -1297,12 +1369,16 @@
         });
       }
 
-      // Auto-resize textarea
+      // Auto-resize textarea + typing indicator
       const ta = document.getElementById('chat-text-input');
       if (ta) {
         ta.addEventListener('input', () => {
           ta.style.height = 'auto';
           ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+          // Emit typing indicator
+          if (window._chatEngine && typeof window._chatEngine.emitTyping === 'function') {
+            window._chatEngine.emitTyping();
+          }
         });
       }
     });
@@ -1416,18 +1492,23 @@
       const list = document.getElementById('members-list');
       if (!list || !users) return;
       const roleIcon = { admin: '⚙️', class_rep: '⭐', student: '🎓' };
-      list.innerHTML = users.slice(0, 20).map(u => `
+      list.innerHTML = users.slice(0, 20).map(u => {
+        const initial = (u.fullName || '?').charAt(0).toUpperCase();
+        const avatarContent = u.photoURL
+          ? `<img src="${u.photoURL}" alt="" class="member-avatar-img">`
+          : initial;
+        return `
         <div class="member-item">
           <div class="member-avatar">
-            ${(u.fullName || '?').charAt(0)}
+            ${avatarContent}
             <span class="member-status-dot online"></span>
           </div>
           <div class="member-info">
             <div class="member-name">${u.fullName || 'Unknown'}</div>
             <div class="member-role">${roleIcon[u.role] || '🎓'} ${u.role || 'student'}</div>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     }
     window.updateMembersPane = updateMembersPane;
 
@@ -1436,11 +1517,197 @@
       const avatar = document.getElementById('nav-footer-avatar');
       const name   = document.getElementById('nav-footer-name');
       const role   = document.getElementById('nav-footer-role');
-      if (avatar && user?.fullName) avatar.textContent = user.fullName.charAt(0).toUpperCase();
+      if (avatar) {
+        if (user?.photoURL) {
+          avatar.innerHTML = `<img src="${user.photoURL}" alt="" class="nav-footer-avatar-img">`;
+        } else if (user?.fullName) {
+          avatar.textContent = user.fullName.charAt(0).toUpperCase();
+        }
+      }
       if (name   && user?.fullName) name.textContent = user.fullName;
       if (role   && user?.role)     role.textContent  = user.role;
     }
     window.updateNavFooter = updateNavFooter;
+
+    // ── Create Channel (Class Rep / Admin) ──────────────────────
+    function showCreateChannel() {
+      document.getElementById('create-channel-modal').classList.remove('hidden');
+      document.getElementById('create-channel-modal').style.display = 'flex';
+    }
+    function closeCreateChannel() {
+      const modal = document.getElementById('create-channel-modal');
+      if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('create-channel-form');
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const name = document.getElementById('new-channel-name')?.value.trim();
+          const type = document.getElementById('new-channel-type')?.value;
+          if (!name) { showToast('Channel name is required.'); return; }
+          try {
+            const { getAuth } = await import('https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js');
+            const { getFirestore, doc, setDoc, serverTimestamp, getDoc } = await import('https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js');
+            const auth = getAuth();
+            const db = getFirestore();
+            const user = auth.currentUser;
+            if (!user) { showToast('Not authenticated.'); return; }
+            const userSnap = await getDoc(doc(db, 'users', user.uid));
+            const userData = userSnap.exists() ? userSnap.data() : {};
+            const chId = `custom-${Date.now()}-${name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase().slice(0, 30)}`;
+            await setDoc(doc(db, 'channels', chId), {
+              channelName: name,
+              channelType: type || 'text',
+              icon: type === 'announcement' ? '📣' : type === 'forum' ? '📂' : '#',
+              department: userData.department || '',
+              level: userData.level || '',
+              createdBy: user.uid,
+              createdAt: serverTimestamp()
+            });
+            showToast(`Channel "#${name}" created.`);
+            closeCreateChannel();
+            document.getElementById('new-channel-name').value = '';
+            // Refresh channels by re-triggering init
+            if (typeof window._chatEngine !== 'undefined' && window._chatEngine.getCurrentUser?.()) {
+              const u = window._chatEngine.getCurrentUser?.();
+              // Manually trigger channel refresh via app.js (exposed globally)
+              if (typeof window.refreshChannels === 'function') window.refreshChannels();
+            }
+          } catch (err) { showToast('Failed to create channel: ' + err.message); }
+        });
+      }
+    });
+
+    // ── Edit Profile ─────────────────────────────────────────────
+    let _currentUserData = null;
+    function showEditProfile() {
+      const modal = document.getElementById('edit-profile-modal');
+      if (!modal || !_currentUserData) return;
+      document.getElementById('edit-name').value = _currentUserData.fullName || '';
+      document.getElementById('edit-department').value = _currentUserData.department || '';
+      document.getElementById('edit-level').value = _currentUserData.level || '';
+      // Show photo preview
+      const preview = document.getElementById('edit-photo-preview');
+      const removeBtn = document.getElementById('edit-photo-remove');
+      if (_currentUserData.photoURL) {
+        preview.innerHTML = `<img src="${_currentUserData.photoURL}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+        if (removeBtn) removeBtn.style.display = '';
+      } else {
+        preview.innerHTML = (_currentUserData.fullName || '?').charAt(0).toUpperCase();
+        if (removeBtn) removeBtn.style.display = 'none';
+      }
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+    }
+    function closeEditProfile() {
+      const modal = document.getElementById('edit-profile-modal');
+      if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+      const fileInput = document.getElementById('edit-photo-input');
+      if (fileInput) fileInput.value = '';
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      // Photo preview on file select
+      const photoInput = document.getElementById('edit-photo-input');
+      if (photoInput) {
+        photoInput.addEventListener('change', () => {
+          const file = photoInput.files[0];
+          const preview = document.getElementById('edit-photo-preview');
+          if (file && preview) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              preview.innerHTML = `<img src="${ev.target.result}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+      // Remove photo button
+      const removePhotoBtn = document.getElementById('edit-photo-remove');
+      if (removePhotoBtn) {
+        removePhotoBtn.addEventListener('click', () => {
+          const preview = document.getElementById('edit-photo-preview');
+          if (preview && _currentUserData) {
+            preview.innerHTML = (_currentUserData.fullName || '?').charAt(0).toUpperCase();
+          }
+          if (photoInput) photoInput.value = '';
+          removePhotoBtn.dataset.remove = 'true';
+        });
+      }
+      const form = document.getElementById('edit-profile-form');
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const name = document.getElementById('edit-name')?.value.trim();
+          const dept = document.getElementById('edit-department')?.value;
+          const level = document.getElementById('edit-level')?.value;
+          if (!name || !dept || !level) { showToast('All fields are required.'); return; }
+          try {
+            const { getAuth } = await import('https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js');
+            const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js');
+            const { getStorage, ref, uploadBytesResumable, getDownloadURL } = await import('https://www.gstatic.com/firebasejs/9.22.1/firebase-storage.js');
+            const auth = getAuth();
+            const db = getFirestore();
+            const storage = getStorage();
+            const user = auth.currentUser;
+            if (!user) { showToast('Not authenticated.'); return; }
+            const updates = { fullName: name, department: dept, level: level };
+            // Handle photo upload
+            const photoFile = document.getElementById('edit-photo-input')?.files[0];
+            const removePhoto = document.getElementById('edit-photo-remove')?.dataset.remove === 'true';
+            if (removePhoto) {
+              updates.photoURL = '';
+              delete document.getElementById('edit-photo-remove').dataset.remove;
+            } else if (photoFile) {
+              const photoRef = ref(storage, `profile-photos/${user.uid}`);
+              const uploadTask = uploadBytesResumable(photoRef, photoFile, { contentType: photoFile.type });
+              await uploadTask;
+              const photoURL = await getDownloadURL(uploadTask.ref);
+              updates.photoURL = photoURL;
+            }
+            await updateDoc(doc(db, 'users', user.uid), updates);
+            _currentUserData = { ..._currentUserData, ...updates };
+            if (typeof window.updateNavFooter === 'function') window.updateNavFooter(_currentUserData);
+            closeEditProfile();
+            showToast('Profile updated successfully.');
+          } catch (err) { showToast('Failed to update profile: ' + err.message); }
+        });
+      }
+      // Populate edit profile selects
+      const departments = ['BSc Information Technology', 'BSc Business Administration', 'BSc Financial Accounting', 'BSc Public Sector Management', 'BSc Sustainable Development'];
+      const levels = ['Year 1', 'Year 2', 'Year 3', 'Year 4'];
+      const deptSelect = document.getElementById('edit-department');
+      const levelSelect = document.getElementById('edit-level');
+      if (deptSelect) deptSelect.innerHTML = departments.map(d => `<option value="${d}">${d}</option>`).join('');
+      if (levelSelect) levelSelect.innerHTML = levels.map(l => `<option value="${l}">${l}</option>`).join('');
+    });
+    // Expose channel refresh for class rep channel creation
+    window.refreshChannels = function() {
+      const user = _currentUserData;
+      if (user && typeof window._chatEngine !== 'undefined' && window._chatEngine.getCurrentUser?.()) {
+        const ceUser = window._chatEngine.getCurrentUser?.();
+        // Try calling initDynamicChannels if exposed via app.js
+        const appScript = document.querySelector('script[src="app.js"]');
+        // We'll use a custom event to signal app.js to refresh
+        window.dispatchEvent(new CustomEvent('refresh-channels', { detail: user }));
+      }
+    };
+
+    // Show/hide create channel button based on role
+    function updateCreateChannelBtn(role) {
+      const btn = document.getElementById('create-channel-btn');
+      if (btn) btn.classList.toggle('hidden', role !== 'class_rep' && role !== 'admin');
+    }
+
+    // Capture user data for profile editing + create channel RBAC
+    const _origUpdateNavFooter = window.updateNavFooter;
+    window.updateNavFooter = function(user) {
+      _currentUserData = user;
+      if (typeof _origUpdateNavFooter === 'function') _origUpdateNavFooter(user);
+      if (user && user.role) {
+        updateCreateChannelBtn(user.role);
+      }
+    };
 
     // ── Upload progress listener ──────────────────────────────────
     function setUploadProgress(pct) {
@@ -1478,6 +1745,20 @@
     });
   </script>
 
+  <!-- Hidden logout button for legacyLogout bridge -->
+  <button id="logout-button" style="display:none" aria-hidden="true"></button>
+
+  <!-- ── Register FCM Service Worker ───────────────────────────── -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/firebase-messaging-sw.js')
+          .then(() => console.log('[SW] FCM service worker registered'))
+          .catch((err) => console.warn('[SW] FCM registration failed:', err));
+      });
+    }
+  </script>
+
   <!-- ── Existing app.js (all original Firebase logic preserved) ── -->
   <script type="module" src="app.js"></script>
 
@@ -1503,7 +1784,7 @@
     // and run RBAC renderer.
     // We poll for _currentUser since onAuthStateChanged is internal to chatEngine.
     const _rbacBootstrap = setInterval(() => {
-      const user = CE.currentUser;
+      const user = CE.getCurrentUser?.();
       if (user) {
         clearInterval(_rbacBootstrap);
 
