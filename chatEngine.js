@@ -53,8 +53,8 @@ const _st   = getStorage(_app);
 /** @type {Function|null} Active Firestore unsubscribe handle */
 let _unsubscribe = null;
 
-/** @type {{ channelId: string, channelName: string, department: string, level: string }|null} */
-let _activeChannel = null;
+/** @type {{ channelId: string, channelName: string, channelType: string }} */
+let _activeChannel = { channelId: 'general', channelName: 'General Chat', channelType: 'text' };
 
 /** @type {{ uid: string, fullName: string, role: string, department: string, level: string }|null} */
 let _currentUser = null;
@@ -451,7 +451,7 @@ onAuthStateChanged(_auth, async (firebaseUser) => {
         ? { uid: firebaseUser.uid, ...snap.data() }
         : { uid: firebaseUser.uid, fullName: firebaseUser.email, role: 'student' };
     } catch (_) {
-      _currentUser = { uid: firebaseUser.uid, fullName: 'Unknown', role: 'student' };
+      _currentUser = { uid: firebaseUser.uid, fullName: 'Unknown', role: _currentUser?.role || 'student' };
     }
   } else {
     _currentUser = null;

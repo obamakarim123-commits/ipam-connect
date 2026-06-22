@@ -1,0 +1,76 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules for IPAM Connect
+// Allows authenticated users to upload files with size restrictions
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get user's role from Firestore
+    function getUserRole() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuth() && getUserRole() == 'admin';
+    }
+    
+    // Helper function to validate file size (max 10MB)
+    function isValidSize() {
+      return request.resource.size <= 10 * 1024 * 1024;
+    }
+    
+    // Helper function to validate file type (images and documents)
+    function isValidFileType() {
+      return request.resource.contentType.matches('image/.*')
+          || request.resource.contentType.matches('application/pdf')
+          || request.resource.contentType.matches('application/msword')
+          || request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.*')
+          || request.resource.contentType.matches('text/.*');
+    }
+    
+    // ── /resources/{userId}/{fileName} ────────────────────────────
+    // User-uploaded resources (course materials, notes, etc.)
+    match /resources/{userId}/{fileName} {
+      // Anyone authenticated can read resources
+      allow read: if isAuth();
+      
+      // Users can upload to their own folder with size/type restrictions
+      allow write: if isAuth() 
+        && request.auth.uid == userId 
+        && isValidSize() 
+        && isValidFileType();
+      
+      // Admins can delete any resource
+      allow delete: if isAdmin() || (isAuth() && request.auth.uid == userId);
+    }
+    
+    // ── /profile-pictures/{userId} ─────────────────────────────────
+    // User profile pictures
+    match /profile-pictures/{userId} {
+      // Anyone authenticated can read profile pictures
+      allow read: if isAuth();
+      
+      // Users can upload/update their own profile picture (max 5MB, images only)
+      allow write: if isAuth() 
+        && request.auth.uid == userId 
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+    
+    // ── /announcements/{fileName} ──────────────────────────────────
+    // Announcement attachments (admin/class_rep only)
+    match /announcements/{fileName} {
+      // Anyone authenticated can read announcements
+      allow read: if isAuth();
+      
+      // Only admins can upload announcement attachments
+      allow write: if isAdmin();
+    }
+  }
+}

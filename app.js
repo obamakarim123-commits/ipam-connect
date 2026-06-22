@@ -517,8 +517,12 @@ async function sendMessageHandler(event) {
 
     if (attachment) {
       const storageRef = ref(storage, `chat-attachments/${Date.now()}-${attachment.name}`);
-      const uploadTask = await uploadBytesResumable(storageRef, attachment);
-      attachmentUrl = await getDownloadURL(uploadTask.ref);
+      attachmentUrl = await new Promise((resolve, reject) => {
+        const task = uploadBytesResumable(storageRef, attachment);
+        task.on('state_changed', null, reject, async () => {
+          try { resolve(await getDownloadURL(task.ref)); } catch (e) { reject(e); }
+        });
+      });
       attachmentType = attachment.type;
     }
 
@@ -565,8 +569,12 @@ async function uploadResourceHandler(event) {
 
   try {
     const storageRef = ref(storage, `resources/${Date.now()}-${file.name}`);
-    const uploadTask = await uploadBytesResumable(storageRef, file);
-    const downloadUrl = await getDownloadURL(uploadTask.ref);
+    const downloadUrl = await new Promise((resolve, reject) => {
+      const task = uploadBytesResumable(storageRef, file);
+      task.on('state_changed', null, reject, async () => {
+        try { resolve(await getDownloadURL(task.ref)); } catch (e) { reject(e); }
+      });
+    });
     const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
     const userData = userDoc.exists() ? userDoc.data() : {};
 
@@ -585,7 +593,8 @@ async function uploadResourceHandler(event) {
     dom.resourceForm.reset();
     loadResources();
   } catch (error) {
-    showToast('Upload failed.');
+    console.error('[UploadResource]', error);
+    showToast('Upload failed: ' + (error.message || 'unknown error'));
   }
 }
 
@@ -656,6 +665,8 @@ function subscribeToMessages() {
         dom.chatMessageStream.innerHTML = `<div class="messages-wrap">${dom.chatMessages.innerHTML}</div>`;
       }
     }
+  }, (error) => {
+    console.error('[subscribeToMessages] onSnapshot error:', error);
   });
 }
 
@@ -853,8 +864,11 @@ async function setupPresence(user) {
   const presenceRef = doc(db, 'presence', user.uid);
   await setDoc(presenceRef, { status: 'online', lastSeen: serverTimestamp(), displayName: '' });
 
-  // Set onDisconnect to mark offline (Firebase v9 doesn't support client-side onDisconnect)
-  // Presence is now handled via local client-side timestamp updates only
+  // Set offline on tab close
+  const handleUnload = () => {
+    setDoc(presenceRef, { status: 'offline', lastSeen: serverTimestamp() }, { merge: true }).catch(() => {});
+  };
+  window.addEventListener('beforeunload', handleUnload);
 
   // Get display name for presence
   const userSnap = await getDoc(doc(db, 'users', user.uid));
@@ -892,6 +906,8 @@ async function setupPresence(user) {
         `;
       }).join('') || '<div class="p-4 text-sm text-slate-400 text-center">No users online</div>';
     }
+  }, (error) => {
+    console.error('[Presence] onSnapshot error:', error);
   });
 }
 

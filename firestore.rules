@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper: is the request from a signed-in user? ──────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // ── Helper: fetch caller's role from /users/{uid} ──────────────
+    function callerRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isModerator() {
+      return isAuth() && callerRole() in ['class_rep', 'admin'];
+    }
+
+    function isAdmin() {
+      return isAuth() && callerRole() == 'admin';
+    }
+
+    // ── /users/{uid} ───────────────────────────────────────────────
+    match /users/{uid} {
+      // Any authenticated user can read the directory.
+      allow read: if isAuth();
+      // Only the owner may write their own profile (on creation).
+      // Admin can update any profile.
+      allow create: if isAuth() && request.auth.uid == uid;
+      allow update: if isAuth() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // ── /channels/{channelId} ──────────────────────────────────────
+    match /channels/{channelId} {
+      // All authenticated users can read channel metadata.
+      allow read: if isAuth();
+      // Admins and class reps can create or modify channels.
+      allow write: if isModerator();
+    }
+
+    // ── /messages/{messageId} ─────────────────────────────────────
+    match /messages/{messageId} {
+      // Any authenticated user can read messages.
+      allow read: if isAuth();
+
+      // Any authenticated user can create a new message.
+      // Enforce: senderId must match the caller's UID.
+      // Enforce: isDeleted must start as false.
+      allow create: if isAuth()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.isDeleted == false;
+
+      // Only moderators (class_rep / admin) may update messages.
+      // They may ONLY flip the isDeleted field — nothing else.
+      allow update: if isModerator()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['isDeleted']);
+
+      // Hard deletions are reserved for admins only.
+      allow delete: if isAdmin();
+    }
+
+    // ── /tokens/{tokenId} ─────────────────────────────────────────
+    match /tokens/{tokenId} {
+      // Class reps and admins can read tokens during registration.
+      allow read: if isAuth();
+      // Admins can create tokens; authenticated users can consume
+      // (update) a token assigned to their own department.
+      allow create: if isAdmin();
+      allow update: if isAuth()
+        && resource.data.isConsumed == false
+        && request.resource.data.isConsumed == true
+        && resource.data.assignedDepartment == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.department;
+    }
+
+    // ── /resources/{resourceId} ───────────────────────────────────
+    match /resources/{resourceId} {
+      allow read: if isAuth();
+      // Any authenticated user can upload a resource.
+      allow create: if isAuth()
+        && request.resource.data.ownerId == request.auth.uid;
+      // Only owner or admin may delete.
+      allow delete: if isAuth()
+        && (request.auth.uid == resource.data.ownerId || isAdmin());
+      allow update: if isAdmin();
+    }
+  }
+}

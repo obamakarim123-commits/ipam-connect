@@ -51,8 +51,8 @@
  *     match /channels/{channelId} {
  *       // All authenticated users can read channel metadata.
  *       allow read: if isAuth();
- *       // Only admins can create or modify channels.
- *       allow write: if isAdmin();
+ *       // Admins and class reps can create or modify channels.
+ *       allow write: if isModerator();
  *     }
  *
  *     // ── /messages/{messageId} ─────────────────────────────────────
@@ -81,8 +81,13 @@
  *     match /tokens/{tokenId} {
  *       // Class reps and admins can read tokens during registration.
  *       allow read: if isAuth();
- *       // Only admins can create and invalidate tokens.
- *       allow write: if isAdmin();
+ *       // Admins can create tokens; authenticated users can consume
+ *       // (update) a token assigned to their own department.
+ *       allow create: if isAdmin();
+ *       allow update: if isAuth()
+ *         && resource.data.isConsumed == false
+ *         && request.resource.data.isConsumed == true
+ *         && resource.data.assignedDepartment == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.department;
  *     }
  *
  *     // ── /resources/{resourceId} ───────────────────────────────────

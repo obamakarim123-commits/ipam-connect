@@ -1583,7 +1583,8 @@
     let _currentUserData = null;
     function showEditProfile() {
       const modal = document.getElementById('edit-profile-modal');
-      if (!modal || !_currentUserData) return;
+      if (!modal) return;
+      if (!_currentUserData) { showToast('Profile not loaded yet. Please wait.'); return; }
       document.getElementById('edit-name').value = _currentUserData.fullName || '';
       document.getElementById('edit-department').value = _currentUserData.department || '';
       document.getElementById('edit-level').value = _currentUserData.level || '';
@@ -1660,9 +1661,12 @@
               delete document.getElementById('edit-photo-remove').dataset.remove;
             } else if (photoFile) {
               const photoRef = ref(storage, `profile-photos/${user.uid}`);
-              const uploadTask = uploadBytesResumable(photoRef, photoFile, { contentType: photoFile.type });
-              await uploadTask;
-              const photoURL = await getDownloadURL(uploadTask.ref);
+              const photoURL = await new Promise((resolve, reject) => {
+                const task = uploadBytesResumable(photoRef, photoFile, { contentType: photoFile.type });
+                task.on('state_changed', null, reject, async () => {
+                  try { resolve(await getDownloadURL(task.ref)); } catch (e) { reject(e); }
+                });
+              });
               updates.photoURL = photoURL;
             }
             await updateDoc(doc(db, 'users', user.uid), updates);
@@ -1670,7 +1674,7 @@
             if (typeof window.updateNavFooter === 'function') window.updateNavFooter(_currentUserData);
             closeEditProfile();
             showToast('Profile updated successfully.');
-          } catch (err) { showToast('Failed to update profile: ' + err.message); }
+          } catch (err) { console.error('[EditProfile]', err); showToast('Failed to update profile: ' + err.message); }
         });
       }
       // Populate edit profile selects
