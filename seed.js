@@ -4,7 +4,8 @@ import { createRequire } from 'module';
 
 // Safely load the local JSON key file in an ES Module environment
 const require = createRequire(import.meta.url);
-const serviceAccount = require('./serviceAccountKey.json');
+const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || './serviceAccountKey.json';
+const serviceAccount = require(keyPath);
 
 // Initialize Firebase Admin using modular imports
 initializeApp({
