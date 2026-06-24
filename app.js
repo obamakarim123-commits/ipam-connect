@@ -175,7 +175,6 @@ async function createUserProfile(user, profileData, tokenCode) {
     department: profileData.department,
     level: profileData.level,
     role,
-    photoURL: '',
     createdAt: serverTimestamp()
   };
 
@@ -532,7 +531,6 @@ async function sendMessageHandler(event) {
       channelId: 'general',
       senderId: auth.currentUser.uid,
       senderName: senderData.fullName || 'Unknown',
-      senderPhotoURL: senderData.photoURL || '',
       text: text || 'Sent an attachment',
       attachmentUrl,
       attachmentType,
@@ -880,8 +878,7 @@ async function setupPresence(user) {
   const userSnap = await getDoc(doc(db, 'users', user.uid));
   if (userSnap.exists()) {
     await setDoc(presenceRef, {
-      displayName: userSnap.data().fullName || '',
-      photoURL: userSnap.data().photoURL || ''
+      displayName: userSnap.data().fullName || ''
     }, { merge: true });
   }
 
@@ -894,10 +891,7 @@ async function setupPresence(user) {
     const memberList = document.getElementById('members-list');
     if (memberList) {
       memberList.innerHTML = onlineUsers.map(u => {
-        const initial = (u.displayName || '?').charAt(0).toUpperCase();
-        const avatarHtml = u.photoURL
-          ? `<img src="${u.photoURL}" alt="" class="member-avatar-img">`
-          : initial;
+        const avatarHtml = (u.displayName || '?').charAt(0).toUpperCase();
         return `
           <div class="member-item">
             <div class="member-avatar">
@@ -1011,23 +1005,34 @@ async function initDynamicChannels(userData) {
 
   const allChannels = [...standardChannels, deptChannel, levelChannel];
 
-  // Fetch custom channels from Firestore (created by class reps)
+  // Fetch channels from Firestore (seeded + class rep created)
   try {
-    const channelsQuery = query(
+    // Level-specific channels
+    const levelQuery = query(
       collection(db, 'channels'),
       where('department', '==', userData.department),
       where('level', '==', userData.level)
     );
-    const snapshot = await getDocs(channelsQuery);
-    snapshot.forEach(docSnapshot => {
-      const ch = docSnapshot.data();
-      allChannels.push({
-        id: docSnapshot.id,
-        name: ch.channelName || docSnapshot.id,
-        type: ch.channelType || 'text',
-        icon: ch.icon || '#',
+    const levelSnap = await getDocs(levelQuery);
+    // Dept-wide channels (level is empty)
+    const deptQuery = query(
+      collection(db, 'channels'),
+      where('department', '==', userData.department),
+      where('level', '==', '')
+    );
+    const deptSnap = await getDocs(deptQuery);
+    const snapshots = [levelSnap, deptSnap];
+    for (const snapshot of snapshots) {
+      snapshot.forEach(docSnapshot => {
+        const ch = docSnapshot.data();
+        allChannels.push({
+          id: docSnapshot.id,
+          name: ch.channelName || docSnapshot.id,
+          type: ch.channelType || 'text',
+          icon: ch.icon || '#',
+        });
       });
-    });
+    }
   } catch (e) {
     console.error('[initDynamicChannels] channels query failed:', e);
   }
@@ -1049,16 +1054,15 @@ async function initDynamicChannels(userData) {
 
 // Auto-create standard channels in Firestore for a department/level (called on first visit)
 async function ensureStandardChannels(userData) {
-  if (!userData || !userData.department || !userData.level) return;
+  if (!userData || !userData.department) return;
   try {
     const q = query(
       collection(db, 'channels'),
-      where('department', '==', userData.department),
-      where('level', '==', userData.level)
+      where('department', '==', userData.department)
     );
     const snap = await getDocs(q);
     if (snap.empty) {
-      // Create standard department channels
+      // Create standard department channels (level-specific)
       const stdChannels = [
         { channelName: 'General', channelType: 'text', icon: '#' },
         { channelName: 'Announcements', channelType: 'text', icon: '📣' },
@@ -1066,7 +1070,7 @@ async function ensureStandardChannels(userData) {
         { channelName: 'Study Groups', channelType: 'text', icon: '#' },
       ];
       for (const ch of stdChannels) {
-        const chId = `${userData.department.replace(/[^a-zA-Z0-9]/g,'-')}-${ch.channelName.replace(/\s+/g,'-').toLowerCase()}`;
+        const chId = `${userData.department.replace(/[^a-zA-Z0-9]/g,'-')}-${ch.channelName.replace(/\s+/g,'-').toLowerCase()}-${userData.level.replace(/\s+/g,'-').toLowerCase()}`;
         const existingDoc = await getDoc(doc(db, 'channels', chId));
         if (!existingDoc.exists()) {
           await setDoc(doc(db, 'channels', chId), {

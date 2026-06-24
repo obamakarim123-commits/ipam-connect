@@ -127,7 +127,7 @@ function _buildMessageEl(snapshot, currentUserRole) {
   senderRow.className = 'msg-sender-row';
   const pinBadge = msg.isPinned ? '<span style="font-size:0.7rem;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:4px;">📌 Pinned</span>' : '';
   senderRow.innerHTML = `
-    <span class="msg-avatar" aria-hidden="true">${msg.senderPhotoURL ? `<img src="${sanitize(msg.senderPhotoURL)}" alt="" class="msg-avatar-img">` : sanitize(msg.senderName?.charAt(0) || '?')}</span>
+    <span class="msg-avatar" aria-hidden="true">${sanitize(msg.senderName?.charAt(0) || '?')}</span>
     <span class="msg-sender-name">${sanitize(msg.senderName || 'Unknown')}</span>
     <time class="msg-time" datetime="${timeStr}">${timeStr}</time>
     ${pinBadge}

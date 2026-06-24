@@ -1468,11 +1468,6 @@ select {
   flex-shrink: 0;
   text-transform: uppercase;
 }
-.msg-avatar-img {
-  width: 100%; height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
 .msg-sender-name {
   font-size: 0.82rem;
   font-weight: 600;
