@@ -5,7 +5,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   onAuthStateChanged,
-  signOut
+  signOut,
+  deleteUser
 } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
 import {
   getFirestore,
@@ -218,13 +219,22 @@ async function registerHandler(event) {
     return;
   }
 
+  let credential;
   try {
-    const credential = await createUserWithEmailAndPassword(auth, email, password);
+    credential = await createUserWithEmailAndPassword(auth, email, password);
+  } catch (error) {
+    showToast(error.message || 'Registration failed.');
+    return;
+  }
+
+  try {
     await createUserProfile(credential.user, { fullName, email, studentId, department, level }, tokenCode);
     showToast('Account created successfully. Redirecting...');
     dom.registerForm.reset();
   } catch (error) {
-    showToast(error.message || 'Registration failed.');
+    console.error('[registerHandler] Firestore profile creation failed, rolling back Auth user:', error);
+    try { await deleteUser(credential.user); } catch (_) { /* best-effort cleanup */ }
+    showToast('Account creation failed. Please try again.');
   }
 }
 
@@ -782,20 +792,28 @@ async function renderUserEnvironment(user) {
   try {
     const userSnapshot = await getDoc(doc(db, 'users', user.uid));
     const userData = userSnapshot.exists() ? userSnapshot.data() : null;
-    _currentUserRole = userData?.role || 'student';
-    dom.userRoleLabel.textContent = userData ? `${userData.fullName} • ${_currentUserRole}` : 'Loading profile...';
+
+    if (!userData) {
+      console.warn('[renderUserEnvironment] No Firestore profile for user', user.uid);
+      showToast('Profile not found. Your account needs to be set up. Signing out...');
+      await signOut(auth);
+      return;
+    }
+
+    _currentUserRole = userData.role || 'student';
+    dom.userRoleLabel.textContent = `${userData.fullName} • ${_currentUserRole}`;
 
     // ── New Discord-layout bridges ───────────────────────────────
-    if (typeof window.updateNavFooter === 'function' && userData) {
+    if (typeof window.updateNavFooter === 'function') {
       window.updateNavFooter(userData);
     }
 
     // Sync user to chatEngine (avoids dual-onAuthStateChanged race)
-    if (window._chatEngine?.setCurrentUser && userData) {
+    if (window._chatEngine?.setCurrentUser) {
       window._chatEngine.setCurrentUser({ uid: user.uid, ...userData });
     }
 
-    if (userData?.role === 'admin') {
+    if (userData.role === 'admin') {
       dom.adminTab.classList.remove('hidden');
       dom.adminSection.classList.remove('hidden');
       // Also reveal the admin rail icon in new layout
@@ -823,7 +841,7 @@ async function renderUserEnvironment(user) {
 
   } catch (error) {
     console.error('[renderUserEnvironment] profile load failed:', error);
-    showToast('Unable to load user profile.');
+    showToast('Unable to load user profile. Check console for details.');
   }
 }
 

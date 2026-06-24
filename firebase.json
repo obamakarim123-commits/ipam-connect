@@ -7,17 +7,28 @@
     "rules": "storage.rules"
   },
   "hosting": {
-    "public": "obama",
+    "public": ".",
     "ignore": [
-      "firebase.json",
       "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
+      "**/.*/**",
+      "**/node_modules/**",
+      ".env*",
+      "dataconnect/**",
+      "functions/**",
+      "seed*.js",
+      "serviceAccountKey.json",
+      "diagnose-firebase.js",
+      "find_admin_temp.js",
+      "skills-lock.json",
+      "package*.json",
+      "README.md",
+      "FIREBASE_SETUP_GUIDE.md",
+      "firebase.json",
+      "firebase-debug.log",
+      "vercel.json",
+      "ipam_connect_prd.pdf",
+      "ipam_connect_about.txt",
+      "obama/**"
     ]
   }
 }

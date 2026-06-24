@@ -1,5 +1,7 @@
 {
   "projects": {
     "default": "ipam-connect-f2439"
-  }
+  },
+  "targets": {},
+  "etags": {}
 }

@@ -1399,6 +1399,12 @@
 
       try {
         if (window._chatEngine && typeof window._chatEngine.sendMessage === 'function') {
+          // Verify auth state before sending
+          if (!window._chatEngine.getCurrentUser()) {
+            showToast('Session not ready yet. Please wait...');
+            sendBtn.disabled = false;
+            return;
+          }
           // Route through chatEngine (new modules)
           await window._chatEngine.sendMessage({ text, file });
         } else {

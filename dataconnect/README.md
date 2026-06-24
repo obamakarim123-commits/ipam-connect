@@ -1,1 +1,0 @@
-Firebase Data Connect (PostgreSQL) schema — intended for future SQL-based features. Not currently connected to the running app (Firestore is used for all data). To activate, deploy via `firebase deploy --only dataconnect` and update the app's data layer accordingly.
