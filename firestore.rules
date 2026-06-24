@@ -85,5 +85,19 @@ service cloud.firestore {
         && (request.auth.uid == resource.data.ownerId || isAdmin());
       allow update: if isAdmin();
     }
+
+    // ── /presence/{uid} ───────────────────────────────────────────
+    match /presence/{uid} {
+      allow read: if isAuth();
+      allow write: if isAuth() && request.auth.uid == uid;
+    }
+
+    // ── /typing/{channelId}/{sub} ─────────────────────────────────
+    match /typing/{channelId} {
+      match /users/{uid} {
+        allow read: if isAuth();
+        allow write: if isAuth() && request.auth.uid == uid;
+      }
+    }
   }
 }

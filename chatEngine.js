@@ -15,10 +15,7 @@
 
 import { firebaseConfig } from './firebase-config.js';
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js';
-import {
-  getAuth,
-  onAuthStateChanged
-} from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
+import { getAuth } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
 import {
   getFirestore,
   collection,
@@ -437,27 +434,20 @@ async function togglePinMessage(messageId, isPinned) {
 }
 
 // ─────────────────────────────────────────────
-// 9. Auth State Observer (internal bootstrap)
+// 9. Auth Binding (set externally by app.js)
 // ─────────────────────────────────────────────
 /**
- * Resolves the full user profile from Firestore when Auth state changes.
- * Keeps _currentUser in sync for the lifetime of the engine.
+ * Sets the current user from Firestore data (called by app.js after
+ * it resolves the profile). This avoids race conditions between
+ * two independent onAuthStateChanged listeners.
  */
-onAuthStateChanged(_auth, async (firebaseUser) => {
-  if (firebaseUser) {
-    try {
-      const snap = await getDoc(doc(_db, 'users', firebaseUser.uid));
-      _currentUser = snap.exists()
-        ? { uid: firebaseUser.uid, ...snap.data() }
-        : { uid: firebaseUser.uid, fullName: firebaseUser.email, role: 'student' };
-    } catch (_) {
-      _currentUser = { uid: firebaseUser.uid, fullName: 'Unknown', role: _currentUser?.role || 'student' };
-    }
-  } else {
-    _currentUser = null;
-    unsubscribeAll();
-  }
-});
+function setCurrentUser(userData) {
+  _currentUser = userData;
+}
+function clearCurrentUser() {
+  _currentUser = null;
+  unsubscribeAll();
+}
 
 // ─────────────────────────────────────────────
 // 10. Channel Loader — reads /channels collection
@@ -594,4 +584,8 @@ export {
   // State accessors (read-only intent)
   getActiveChannel,
   getCurrentUser,
+
+  // Auth binding (called by app.js)
+  setCurrentUser,
+  clearCurrentUser,
 };

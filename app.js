@@ -454,7 +454,7 @@ async function sendMessageHandler(event) {
       if (userSnapshot.exists()) {
         name = userSnapshot.data().fullName || 'You';
       }
-    } catch(e) {}
+    } catch(e) { console.error('[sendMessageHandler] getDoc failed:', e); }
 
     localChats[currentChannel].push({
       sender: name,
@@ -772,9 +772,9 @@ async function _patchedLoadAdminConsole() {
         `;
       }).join('');
     }
-  } catch (e) {
-    // ignore — token table is cosmetic
-  }
+    } catch (e) {
+      console.error('[AdminDashboard] token table load failed:', e);
+    }
 }
 // Replace the reference used by event listeners
 const _origLoadAdminConsole = loadAdminConsole;
@@ -790,6 +790,11 @@ async function renderUserEnvironment(user) {
     // ── New Discord-layout bridges ───────────────────────────────
     if (typeof window.updateNavFooter === 'function' && userData) {
       window.updateNavFooter(userData);
+    }
+
+    // Sync user to chatEngine (avoids dual-onAuthStateChanged race)
+    if (window._chatEngine?.setCurrentUser && userData) {
+      window._chatEngine.setCurrentUser({ uid: user.uid, ...userData });
     }
 
     if (userData?.role === 'admin') {
@@ -816,9 +821,10 @@ async function renderUserEnvironment(user) {
       if (typeof window.updateMembersPane === 'function') {
         window.updateMembersPane(allUsers);
       }
-    } catch (_) { /* members pane is cosmetic — ignore failures */ }
+    } catch (_) { console.error('[renderUserEnvironment] members pane failed:', _); }
 
   } catch (error) {
+    console.error('[renderUserEnvironment] profile load failed:', error);
     showToast('Unable to load user profile.');
   }
 }
@@ -944,6 +950,7 @@ onAuthStateChanged(auth, async (user) => {
     dom.appScreen.classList.add('hidden');
     dom.authScreen.classList.remove('hidden');
     if (_presenceUnsub) _presenceUnsub();
+    if (window._chatEngine?.clearCurrentUser) window._chatEngine.clearCurrentUser();
   }
 });
 
@@ -1022,7 +1029,7 @@ async function initDynamicChannels(userData) {
       });
     });
   } catch (e) {
-    // Firestore query might fail if composite index not created; silently fall through
+    console.error('[initDynamicChannels] channels query failed:', e);
   }
 
   // Rebuild the channel list HTML
@@ -1075,7 +1082,7 @@ async function ensureStandardChannels(userData) {
       }
     }
   } catch (e) {
-    // Silently fail — channels may already exist
+    console.error('[ensureStandardChannels] failed:', e);
   }
 }
 
